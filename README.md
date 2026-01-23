@@ -1,4 +1,5 @@
 treasure-hunt
+
 developers: Austin Nguyen, Duy Ly, Sungmin Cha
 
 This project creates a treasure hunt game on a grid of size N x N. The grid contains:

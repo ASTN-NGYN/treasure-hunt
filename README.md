@@ -18,20 +18,20 @@ How to set up and run:
 1. Open a terminal and go to the project directory:  
    cd path/to/treasure-hunt
 
-3. Create a python 3.12 virtual environment:  
+2. Create a python 3.12 virtual environment:  
    python3.12 -m venv venv
 
-4. Activate the virtual environment:  
+3. Activate the virtual environment:  
    On macOS:
    source venv/bin/activate
 
-5. Install dependencies:  
+4. Install dependencies:  
    pip install -r requirements.txt
 
-6. Run the program:  
+5. Run the program:  
    python main.py
 
-7. In the GUI, enter a grid size and click Submit. The program will:
+6. In the GUI, enter a grid size and click Submit. The program will:
    - generate an N x N grid
    - place one treasure, one trap, and walls
    - open a window showing the 2d grid

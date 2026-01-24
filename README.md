@@ -7,7 +7,7 @@ This project creates a treasure hunt game on a grid of size N x N. The grid cont
 - exactly one trap
 - walls that cover about 20% of the grid
 
-The user chooses the grid size (minimum 8). The program opens a tkinter window displaying the 2d grid.
+The user chooses the grid size (minimum 8) in a small  prompt window. After submitting, the program displays the 2d grid.
 
 Requirements:
 - Python 3.12 (or Python version with tkinter available)
@@ -31,7 +31,7 @@ How to set up and run:
 6. Run the program:  
    python main.py
 
-7. When prompted, enter a grid size (an integer 8 or larger). The program will:
+7. In the GUI, enter a grid size and click Submit. The program will:
    - generate an N x N grid
    - place one treasure, one trap, and walls
    - open a window showing the 2d grid

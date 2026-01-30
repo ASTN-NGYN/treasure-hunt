@@ -1,6 +1,7 @@
 import tkinter as tk
-from config import CELL_SIZE, COLORS, MIN_GRID_SIZE, SYMBOLS
+from config import CELL_SIZE, COLORS, SYMBOLS
 from grid import Grid
+from search import SearchResult, bfs, dfs
 
 # Treasure Map
 class TreasureHuntMap:
@@ -11,19 +12,28 @@ class TreasureHuntMap:
         self.window.title("Treasure Hunt")
 
         self._on_reset = on_reset
+        self._path_items: list[int] = []
 
         self.frame = tk.Frame(self.window)
         self.frame.pack(fill="both", expand=True)
 
         table_size = self.grid_size * CELL_SIZE
-        self.canvas = tk.Canvas(self.frame, width=table_size, height=table_size, bg='white')
+        self.canvas = tk.Canvas(self.frame, width=table_size, height=table_size, bg="white")
 
         self.canvas.pack(padx=10, pady=(10, 6))
 
         self.draw_grid()
 
-        self.reset_button = tk.Button(self.frame, text="Reset", command=on_reset)
-        self.reset_button.pack(pady=(6, 10))
+        controls = tk.Frame(self.frame)
+        controls.pack(pady=(6, 4))
+
+        tk.Button(controls, text="Run BFS", command=self.run_bfs).pack(side="left", padx=4)
+        tk.Button(controls, text="Run DFS", command=self.run_dfs).pack(side="left", padx=4)
+        tk.Button(controls, text="Reset", command=on_reset).pack(side="left", padx=4)
+
+        self._metrics_var = tk.StringVar(value="")
+        self._metrics_label = tk.Label(self.frame, textvariable=self._metrics_var, anchor="w", justify="left")
+        self._metrics_label.pack(fill="x", padx=10, pady=(2, 10))
         
     def draw_grid(self):
         for row in range(self.grid_size):
@@ -54,6 +64,66 @@ class TreasureHuntMap:
                 if symbol != '':
                     self.canvas.create_text(x1 + CELL_SIZE/2, y1 + CELL_SIZE/2, text=symbol, font=('Arial', 12, 'bold'), fill = 'black')
 
+    def _find_start_and_goal(self):
+        start = None
+        goal = None
+
+        for row in range(self.grid_size):
+            for col in range(self.grid_size):
+                value = self.grid_array[row][col]
+                if value == 1:
+                    goal = (row, col)
+                if start is None and value == 0:
+                    start = (row, col)
+
+        if start is None:
+            start = (0, 0)
+        if goal is None:
+            goal = (self.grid_size - 1, self.grid_size - 1)
+
+        return start, goal
+
+    def _show_result(self, algo_name: str, result: SearchResult):
+        for item_id in self._path_items:
+            self.canvas.delete(item_id)
+        self._path_items.clear()
+
+        path = result.path
+        if path:
+            for (row, col) in path:
+                x1 = col * CELL_SIZE
+                y1 = row * CELL_SIZE
+                x2 = x1 + CELL_SIZE
+                y2 = y1 + CELL_SIZE
+                pad = 4
+                item_id = self.canvas.create_rectangle(
+                    x1 + pad,
+                    y1 + pad,
+                    x2 - pad,
+                    y2 - pad,
+                    outline="green",
+                    width=2,
+                )
+                self._path_items.append(item_id)
+
+        path_len = max(len(path) - 1, 0)
+        self._metrics_var.set(
+            f"{algo_name} — Path length: {path_len}, "
+            f"Nodes expanded: {result.nodes_expanded}, "
+            f"Time: {result.runtime * 1000:.2f} ms"
+        )
+
+    def _run_search(self, algo_name: str, func):
+        start, goal = self._find_start_and_goal()
+        result = func(self.grid_array, start, goal)
+        self._show_result(algo_name, result)
+
+    def run_bfs(self):
+        self._run_search("BFS", bfs)
+
+    def run_dfs(self):
+        self._run_search("DFS", dfs)
+
     def destroy(self):
         self.frame.destroy()
 
@@ -67,57 +137,12 @@ class TreasureHuntApp:
     def __init__(self):
         self.root = tk.Tk()
         self.root.title("Treasure Hunt")
-
-        self._prompt_frame: tk.Frame | None = None
+        
         self._map_view: TreasureHuntMap | None = None
-        self._error_var = tk.StringVar(value="")
-        self._size_var = tk.StringVar()
+        self._create_new_map()
 
-        self._show_size_prompt()
-
-    def _show_size_prompt(self):
-        frame = tk.Frame(self.root, padx=16, pady=16)
-        frame.pack(fill="both", expand=True)
-        self._prompt_frame = frame
-
-        title = tk.Label(frame, text="Treasure Hunt", font=("Arial", 16, "bold"))
-        title.pack(anchor="w", pady=(0, 8))
-
-        label = tk.Label(frame, text=f"Enter grid size (min {MIN_GRID_SIZE}):")
-        label.pack(anchor="w")
-
-        entry = tk.Entry(frame, textvariable=self._size_var, width=12)
-        entry.pack(anchor="w", pady=(6, 10))
-        entry.focus_set()
-        entry.bind("<Return>", lambda _event: self._submit_size())
-
-        submit = tk.Button(frame, text="Submit", command=self._submit_size)
-        submit.pack(anchor="w")
-
-        error = tk.Label(frame, textvariable=self._error_var, fg="red")
-        error.pack(anchor="w", pady=(10, 0))
-
-    def _submit_size(self):
-        raw = self._size_var.get().strip()
-
-        # Check for if input is valid and in range
-        try:
-            size = int(raw)
-        except ValueError:
-            self._error_var.set("Please enter a valid integer.")
-            return
-
-        if size < MIN_GRID_SIZE:
-            self._error_var.set(f"Grid size must be at least {MIN_GRID_SIZE}.")
-            return
-
-        # Destroy the prompt frame
-        if self._prompt_frame is not None:
-            self._prompt_frame.destroy()
-            self._prompt_frame = None
-
-        # Generates and displays the map
-        grid = Grid(size)
+    def _create_new_map(self):
+        grid = Grid(10)
         self._map_view = TreasureHuntMap(grid.get_grid(), root=self.root, on_reset=self.reset)
 
     def reset(self):
@@ -126,10 +151,7 @@ class TreasureHuntApp:
             self._map_view.destroy()
             self._map_view = None
 
-        # Reset prompt state
-        self._error_var.set("")
-        self._size_var.set("")
-        self._show_size_prompt()
+        self._create_new_map()
 
     def run(self):
         self.root.mainloop()

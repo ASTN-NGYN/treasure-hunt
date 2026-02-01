@@ -1,7 +1,7 @@
 import tkinter as tk
 from config import CELL_SIZE, COLORS, SYMBOLS
 from grid import Grid
-from search import SearchResult, bfs, dfs
+from search import SearchResult, bfs, dfs, ucs
 
 # Treasure Map
 class TreasureHuntMap:
@@ -29,6 +29,7 @@ class TreasureHuntMap:
 
         tk.Button(controls, text="Run BFS", command=self.run_bfs).pack(side="left", padx=4)
         tk.Button(controls, text="Run DFS", command=self.run_dfs).pack(side="left", padx=4)
+        tk.Button(controls, text="Run UCS", command=self.run_ucs).pack(side="left", padx=4)
         tk.Button(controls, text="Reset", command=on_reset).pack(side="left", padx=4)
 
         self._metrics_var = tk.StringVar(value="")
@@ -123,6 +124,9 @@ class TreasureHuntMap:
 
     def run_dfs(self):
         self._run_search("DFS", dfs)
+
+    def run_ucs(self):
+        self._run_search("UCS", ucs)
 
     def destroy(self):
         self.frame.destroy()

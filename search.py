@@ -42,7 +42,7 @@ def bfs(grid, start: Coord, goal: Coord) -> SearchResult:
 
     q = deque([start])
     visited = {start}
-    parent: Dict[Coord, Coord] = {}
+    parent = {}
     nodes_expanded = 0
 
     while q:
@@ -75,7 +75,7 @@ def dfs(grid, start: Coord, goal: Coord) -> SearchResult:
 
     stack = [start]
     visited = {start}
-    parent: Dict[Coord, Coord] = {}
+    parent = {}
     nodes_expanded = 0
 
     while stack:
@@ -110,7 +110,7 @@ def ucs(grid, start: Coord, goal: Coord) -> SearchResult:
     start_row, start_col = start
     heap = [(0, start_row, start_col)]
     visited = set()
-    parent: Dict[Coord, Coord] = {}
+    parent = {}
     nodes_expanded = 0
 
     while heap:

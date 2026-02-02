@@ -45,4 +45,5 @@ Experimentation & Results:
    - All in all, the position of the target relative to the position of the start point decided which search was better. DFS is good when the target is in the straight path of the start point. BFS and UCS is better if the target is closer in proximity.
 
 Use of Generative AI Statement:
+
 After generating our grid, we noticed there were cases where the start point was trapped by walls and/or traps which would make a solution for that grid impossible. We used AI to brainstorm solutions to this edge case. After looking at the ideas, we chose the solution of continuous regenerating grids until there was a valid grid. We decided upon this solution because this was a very rare edge case, so it would be highly unlikely of causing a runtime error.

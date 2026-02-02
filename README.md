@@ -47,3 +47,5 @@ Experimentation & Results:
 Use of Generative AI Statement:
 
 After generating our grid, we noticed there were cases where the start point was trapped by walls and/or traps which would make a solution for that grid impossible. We used AI to brainstorm solutions to this edge case. After looking at the ideas, we chose the solution of continuous regenerating grids until there was a valid grid. We decided upon this solution because this was a very rare edge case, so it would be highly unlikely of causing a runtime error.
+
+<img width="1070" height="1256" alt="image" src="https://github.com/user-attachments/assets/20e0659a-e9bd-4190-91e3-de935f5e061f" />

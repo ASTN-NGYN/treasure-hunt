@@ -1,4 +1,5 @@
 from __future__ import annotations
+import heapq
 from collections import deque
 from dataclasses import dataclass
 from typing import Dict, Iterable, List, Tuple
@@ -39,13 +40,13 @@ def bfs(grid, start: Coord, goal: Coord) -> SearchResult:
 
     t0 = time.perf_counter()
 
-    frontier = deque([start])
+    q = deque([start])
     visited = {start}
-    parent: Dict[Coord, Coord] = {}
+    parent = {}
     nodes_expanded = 0
 
-    while frontier:
-        current = frontier.popleft()
+    while q:
+        current = q.popleft()
         nodes_expanded += 1
 
         if current == goal:
@@ -59,7 +60,7 @@ def bfs(grid, start: Coord, goal: Coord) -> SearchResult:
                 continue
             visited.add(nb)
             parent[nb] = current
-            frontier.append(nb)
+            q.append(nb)
 
     path = build_path(parent, start, goal)
     t1 = time.perf_counter()
@@ -74,7 +75,7 @@ def dfs(grid, start: Coord, goal: Coord) -> SearchResult:
 
     stack = [start]
     visited = {start}
-    parent: Dict[Coord, Coord] = {}
+    parent = {}
     nodes_expanded = 0
 
     while stack:
@@ -100,4 +101,41 @@ def dfs(grid, start: Coord, goal: Coord) -> SearchResult:
     return SearchResult(path=path, nodes_expanded=nodes_expanded, runtime=t1 - t0)
 
 def ucs(grid, start: Coord, goal: Coord) -> SearchResult:
-    # start here!
+    size = len(grid)
+    blocked = {2, 3}
+
+    t0 = time.perf_counter()
+
+    # Min-heap: (cost, row, col)
+    start_row, start_col = start
+    heap = [(0, start_row, start_col)]
+    visited = set()
+    parent = {}
+    nodes_expanded = 0
+
+    while heap:
+        cost, row, col = heapq.heappop(heap)
+        current = (row, col)
+
+        if current in visited:
+            continue
+        visited.add(current)
+        nodes_expanded += 1
+
+        if current == goal:
+            break
+
+        for nb in get_successor_functions(current, size):
+            nrow, ncol = nb
+            if grid[nrow][ncol] in blocked:
+                continue
+            if nb in visited:
+                continue
+            new_cost = cost + 1
+            heapq.heappush(heap, (new_cost, nrow, ncol))
+            parent[nb] = current
+
+    path = build_path(parent, start, goal)
+    t1 = time.perf_counter()
+
+    return SearchResult(path=path, nodes_expanded=nodes_expanded, runtime=t1 - t0)

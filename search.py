@@ -44,9 +44,11 @@ def bfs(grid, start: Coord, goal: Coord) -> SearchResult:
     visited = {start}
     parent = {}
     nodes_expanded = 0
+    explored = [] # print list to console for debugging
 
     while q:
         current = q.popleft()
+        explored.append(current)
         nodes_expanded += 1
 
         if current == goal:
@@ -65,6 +67,8 @@ def bfs(grid, start: Coord, goal: Coord) -> SearchResult:
     path = build_path(parent, start, goal)
     t1 = time.perf_counter()
 
+    print(f"BFS Explored: {explored}")
+
     return SearchResult(path=path, nodes_expanded=nodes_expanded, runtime=t1 - t0)
 
 def dfs(grid, start: Coord, goal: Coord) -> SearchResult:
@@ -77,9 +81,11 @@ def dfs(grid, start: Coord, goal: Coord) -> SearchResult:
     visited = {start}
     parent = {}
     nodes_expanded = 0
+    explored = [] # print list to console for debugging
 
     while stack:
         current = stack.pop()
+        explored.append(current)
         nodes_expanded += 1
 
         if current == goal:
@@ -98,6 +104,8 @@ def dfs(grid, start: Coord, goal: Coord) -> SearchResult:
     path = build_path(parent, start, goal)
     t1 = time.perf_counter()
 
+    print(f"DFS Explored: {explored}")
+
     return SearchResult(path=path, nodes_expanded=nodes_expanded, runtime=t1 - t0)
 
 def ucs(grid, start: Coord, goal: Coord) -> SearchResult:
@@ -112,6 +120,7 @@ def ucs(grid, start: Coord, goal: Coord) -> SearchResult:
     visited = set()
     parent = {}
     nodes_expanded = 0
+    explored = [] # print list to console for debugging
 
     while heap:
         cost, row, col = heapq.heappop(heap)
@@ -120,6 +129,7 @@ def ucs(grid, start: Coord, goal: Coord) -> SearchResult:
         if current in visited:
             continue
         visited.add(current)
+        explored.append(current)
         nodes_expanded += 1
 
         if current == goal:
@@ -137,5 +147,7 @@ def ucs(grid, start: Coord, goal: Coord) -> SearchResult:
 
     path = build_path(parent, start, goal)
     t1 = time.perf_counter()
+
+    print(f"UCS Explored: {explored}")
 
     return SearchResult(path=path, nodes_expanded=nodes_expanded, runtime=t1 - t0)

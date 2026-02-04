@@ -7,6 +7,7 @@ COLORS = {
     'treasure': '#8dd7fc', # treasure  - pink
     'trap': '#f7b9fa',   # trap - blue
     'wall': '#fcba03',   # wall - orange
+    'start': '#88e788',  # start - green
 }
 
 SYMBOLS = {
@@ -14,4 +15,5 @@ SYMBOLS = {
     1: 'T',     # treasure
     2: 'X',     # trap
     3: '#',     # wall
+    4: 'S',     # start
 }

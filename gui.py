@@ -57,6 +57,8 @@ class TreasureHuntMap:
                         color = COLORS['trap']
                     case 3:
                         color = COLORS['wall']
+                    case 4:
+                        color = COLORS['start']
                     case _:
                         color = COLORS['empty']
 
@@ -76,7 +78,7 @@ class TreasureHuntMap:
                 value = self.grid_array[row][col]
                 if value == 1:
                     goal = (row, col)
-                if start is None and value == 0:
+                if start is None and value == 4:
                     start = (row, col)
 
         if start is None:

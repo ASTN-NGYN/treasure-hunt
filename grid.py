@@ -13,10 +13,14 @@ class Grid:
         config.GRID_SIZE = self.grid_size
         
         self.num_walls = self.calculate_num_walls()
+        self.num_traps = self.calculate_num_traps()
         self.generate_grid()
         
     def calculate_num_walls(self):
-        return int(self.grid_size**2 * 0.10)
+        return int(7)
+
+    def calculate_num_traps(self):
+        return int(20)
     
     def generate_grid(self):
         for _ in range(100):
@@ -28,8 +32,9 @@ class Grid:
             treasure_x, treasure_y = self.get_random_empty_cell()
             self.grid[treasure_x, treasure_y] = 1
 
-            trap_x, trap_y = self.get_random_empty_cell()
-            self.grid[trap_x, trap_y] = 2
+            for _ in range(self.num_traps):
+                trap_x, trap_y = self.get_random_empty_cell()
+                self.grid[trap_x, trap_y] = 2
 
             for _ in range(self.num_walls):
                 wall_x, wall_y = self.get_random_empty_cell()

@@ -154,3 +154,46 @@ def ucs(grid, start: Coord, goal: Coord) -> SearchResult:
     print(f"UCS Explored: {explored}")
 
     return SearchResult(path=path, nodes_expanded=nodes_expanded, runtime=t1 - t0)
+
+def greedy(grid, start: Coord, goal: Coord) -> SearchResult:
+    size = len(grid)
+    blocked = {2, 3}
+
+    explored = []
+
+    t0 = time.perf_counter()
+
+    heap = [(0, start)] # (heuristic value, (row, col))
+    visited = {start}
+    parent = {}
+    nodes_expanded = 0
+
+    while heap:
+        cost, current = heapq.heappop(heap)
+        nodes_expanded += 1
+        explored.append(current)
+
+        if current == goal:
+            break
+
+        for nb in get_successor_functions(current, size):
+            nrow, ncol = nb
+            if grid[nrow][ncol] in blocked:
+                continue
+            if nb in visited:
+                continue
+            
+            visited.add(nb)
+            heuristic_cost = _manhattan_distance(nb, goal)
+            heapq.heappush(heap, (heuristic_cost, nb))
+            parent[nb] = current
+
+    path = build_path(parent, start, goal)
+    t1 = time.perf_counter()
+
+    print(f"Greedy Explored: {explored}")
+
+    return SearchResult(path=path, nodes_expanded=nodes_expanded, runtime=t1 - t0)
+
+def _manhattan_distance(current: Coord, nb: Coord) -> int:
+    return abs(current[0] - nb[0]) + abs(current[1] - nb[1])

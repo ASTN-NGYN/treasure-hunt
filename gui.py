@@ -1,7 +1,7 @@
 import tkinter as tk
 from config import CELL_SIZE, COLORS, SYMBOLS
 from grid import Grid
-from search import SearchResult, bfs, dfs, ucs
+from search import SearchResult, bfs, dfs, ucs, greedy
 
 # Treasure Map
 class TreasureHuntMap:
@@ -30,6 +30,7 @@ class TreasureHuntMap:
         tk.Button(controls, text="Run BFS", command=self.run_bfs).pack(side="left", padx=4)
         tk.Button(controls, text="Run DFS", command=self.run_dfs).pack(side="left", padx=4)
         tk.Button(controls, text="Run UCS", command=self.run_ucs).pack(side="left", padx=4)
+        tk.Button(controls, text="Run Greedy", command=self.run_greedy).pack(side="left", padx=4)
         if self._on_reset:
             tk.Button(controls, text="Reset", command=self._on_reset).pack(side="left", padx=4)
         else:
@@ -131,6 +132,9 @@ class TreasureHuntMap:
 
     def run_ucs(self):
         self._run_search("UCS", ucs)
+
+    def run_greedy(self):
+        self._run_search("Greedy", greedy)
 
     def destroy(self):
         self.frame.destroy()

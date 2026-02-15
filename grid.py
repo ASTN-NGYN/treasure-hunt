@@ -17,16 +17,16 @@ class Grid:
         self.traps_coords = [(1, 1), (1,17)]
         self.walls_coords = [(2, 17), (0, 16), (16, 15), (16, 17), (17, 16), (8, 0), (7,5)]
         
-        # self.num_walls = self.calculate_num_walls()   // for when you want to generate the walls randomly
-        # self.num_traps = self.calculate_num_traps()   // for when you want to generate the traps randomly
+        # self.random_walls = self.calculate_num_walls()   # for when you want to generate the walls randomly
+        # self.random_traps = self.calculate_num_traps()   # for when you want to generate the traps randomly
         
         self.generate_grid()
         
-    # def calculate_num_walls(self):
-    #     return int(np.random.randint(5, 10))
+    def calculate_num_walls(self):
+        return int(np.random.randint(5, 10))
 
-    # def calculate_num_traps(self):
-    #     return int(2)
+    def calculate_num_traps(self):
+        return int(2)
     
     def generate_grid(self):
         for _ in range(100):
@@ -43,6 +43,24 @@ class Grid:
 
             for wall_x, wall_y in self.walls_coords:
                 self.grid[wall_x, wall_y] = 3
+
+
+            #--------------Random-------------------
+            # # For when you are generating random Treasure
+            # for _ in range(2):
+            #     treasure_x, treasure_y = self.get_random_empty_cell()
+            #     self.grid[treasure_x, treasure_y] = 1
+
+            # # For when you are generating random Traps
+            # for _ in range(self.random_traps):
+            #     trap_x, trap_y = self.get_random_empty_cell()
+            #     self.grid[trap_x, trap_y] = 2
+
+            # # For when you are generating random Walls
+            # for _ in range(self.random_walls):
+            #     wall_x, wall_y = self.get_random_empty_cell()
+            #     self.grid[wall_x, wall_y] = 3
+            #----------------------------------------
 
             start = (startx, starty)
 

@@ -163,20 +163,19 @@ def a_star(grid, start: Coord, goal: Coord) -> SearchResult:
 
     t0 = time.perf_counter()
 
-    heap = [(0, 0, start)]
+    heap = [(_manhattan_distance(start, goal), 0, start)]
     visited = set()
     parent = {}
     nodes_expanded = 0
 
     while heap:
-        _, g, current_coord = heapq.heappop(heap)
+        f, g, current_coord = heapq.heappop(heap)
         current = current_coord
 
         if current in visited:
             continue
         visited.add(current)
         nodes_expanded += 1
-        f = g + _manhattan_distance(current, goal)
         explored.append((current, f))
 
         if current == goal:

@@ -11,9 +11,15 @@ class Grid:
             raise ValueError(f"Grid size must be at least {MIN_GRID_SIZE}")
 
         config.GRID_SIZE = self.grid_size
+
+        self.agent_coords = (19, 0)
+        self.treasure_coords = [(1, 18), (16, 16), (1, 0)]
+        self.traps_coords = [(1, 1), (1,17)]
+        self.walls_coords = [(2, 17), (0, 16), (16, 15), (16, 17), (17, 16), (8, 0), (7,5)]
         
-        self.num_walls = self.calculate_num_walls()
-        self.num_traps = self.calculate_num_traps()
+        # self.num_walls = self.calculate_num_walls()
+        # self.num_traps = self.calculate_num_traps()
+        
         self.generate_grid()
         
     def calculate_num_walls(self):
@@ -26,22 +32,16 @@ class Grid:
         for _ in range(100):
             self.grid = np.zeros((self.grid_size, self.grid_size), dtype=int)
 
-            startx, starty = 19, 0
+            startx, starty = self.agent_coords
             self.grid[startx, starty] = 4
 
-            self.num_treasures = np.random.randint(2, 4)
-            self.treasure_positions = []
-            for _ in range(self.num_treasures):
-                tx, ty = self.get_random_empty_cell()
+            for tx, ty in self.treasure_coords:
                 self.grid[tx, ty] = 1
-                self.treasure_positions.append((tx, ty))
 
-            for _ in range(self.num_traps):
-                trap_x, trap_y = self.get_random_empty_cell()
+            for trap_x, trap_y in self.traps_coords:
                 self.grid[trap_x, trap_y] = 2
 
-            for _ in range(self.num_walls):
-                wall_x, wall_y = self.get_random_empty_cell()
+            for wall_x, wall_y in self.walls_coords:
                 self.grid[wall_x, wall_y] = 3
 
             start = (startx, starty)
@@ -63,16 +63,9 @@ class Grid:
     
     def get_grid(self):
         return self.grid
-    
-    # def _find_start(self):
-    #     for row in range(self.grid_size):
-    #         for col in range(self.grid_size):
-    #             if self.grid[row, col] == 4:
-    #                 return row, col
-    #     return (10, 0)
 
     def _solution_exists(self, start):
-        for goal in self.treasure_positions:
+        for goal in self.treasure_coords:
             result = dfs(self.grid, start, goal)
             if len(result.path) > 0:
                 return True

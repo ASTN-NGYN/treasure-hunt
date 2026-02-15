@@ -241,5 +241,5 @@ def greedy(grid, start: Coord, goal: Coord) -> SearchResult:
 
     return SearchResult(path=path, nodes_expanded=nodes_expanded, runtime=t1 - t0)
 
-def _manhattan_distance(current: Coord, nb: Coord) -> int:
-    return abs(current[0] - nb[0]) + abs(current[1] - nb[1])
+def _manhattan_distance(current: Coord, goal: Coord) -> int:
+    return abs(current[0] - goal[0]) + abs(current[1] - goal[1])

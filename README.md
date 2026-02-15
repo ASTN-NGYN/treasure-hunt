@@ -2,12 +2,12 @@ treasure-hunt
 
 developers: Austin Nguyen, Duy Ly, Sungmin Cha
 
-This project creates a treasure hunt game on a grid of size N x N. The grid contains:
-- exactly one treasure
-- exactly one trap
-- walls that cover about 20% of the grid
+This project creates a treasure hunt game on a grid of size 20 x 20. The grid contains:
+- 2–3 treasures (T)
+- 2 traps (X)
+- several static walls (#) that cover about 20% of the grid
 
-The user chooses the grid size (minimum 8) in a small  prompt window. After submitting, the program displays the 2d grid.
+The program displays the grid directly. Treasures, traps, and walls are visually distinct.
 
 Requirements:
 - Python 3.12 (or Python version with tkinter available)
@@ -31,10 +31,11 @@ How to set up and run:
 5. Run the program:  
    python main.py
 
-6. In the GUI, enter a grid size and click Submit. The program will:
-   - generate an N x N grid
-   - place one treasure, one trap, and walls
+6. The program will:
+   - generate a 20 x 20 grid with 2–3 treasures, 2 traps, and walls
    - open a window showing the 2d grid
+   - provide Run BFS, DFS, UCS, Greedy, and A* buttons
+   - provide a Reset button to regenerate a new grid configuration
 
 
 Experimentation & Results:
@@ -43,6 +44,10 @@ Experimentation & Results:
    - For BFS, we visit neighboring/adjacent cells and then explore their neighboring cells. Essentially expanding in all directions from the start point.
    - For UCS, implementation wise it is very similar to BFS except we track cost. Inside of our heap, we track the cost of each cell. Whenever we pop from our heap, we are popping the least expensive grid position. As we are exploring our grid, we add the cost of new cells to our heap, and we pop from our heap the cheapest grid position to go to.
    - All in all, the position of the target relative to the position of the start point decided which search was better. DFS is good when the target is in the straight path of the start point. BFS and UCS is better if the target is closer in proximity.
+   
+   - For A*, we use Manhattan distance as an admissible heuristic. The heap stores (f, g, coord) where f(n) = g(n) + h(n). We always expand the node with the smallest f(n) value. This guarantees the shortest path when the heuristic is admissible.
+   - For Greedy, the heap stores only (h, coord). We expand the node that appears closest to the goal (smallest h) without considering the cost so far g(n). It explores toward the goal greedily but does not guarantee the shortest path.
+   - A* is better when the shortest path is important (it guarantees optimality). Greedy can be faster in terms of nodes expanded and runtime but may find a longer path.
 
 Use of Generative AI Statement:
 

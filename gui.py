@@ -10,6 +10,7 @@ class TreasureHuntMap:
         self.grid_size = len(grid_array)
         self.window = root or tk.Tk()
         self.window.title("Treasure Hunt")
+        self.window.maxsize(1500,800)
 
         self._on_reset = on_reset
         self._path_items: list[int] = []

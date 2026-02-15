@@ -1,6 +1,6 @@
 GRID_SIZE = 8       # default grid size
 MIN_GRID_SIZE = 8
-CELL_SIZE = 50
+CELL_SIZE = 35
 
 COLORS = {
     'empty': '#eceff1',  # empty cell - gray

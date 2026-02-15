@@ -16,7 +16,7 @@ class SearchResult:
 
 def get_successor_functions(pos: Coord, grid_size: int) -> Iterable[Coord]:
     row, col = pos
-    for d_row, d_col in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+    for d_row, d_col in [(-1, 0), (0, 1), (1, 0), (0, -1)]:  # up, right, down, left
         next_row, next_col = row + d_row, col + d_col
         if 0 <= next_row < grid_size and 0 <= next_col < grid_size:
             yield next_row, next_col
@@ -38,6 +38,8 @@ def bfs(grid, start: Coord, goal: Coord) -> SearchResult:
     size = len(grid)
     blocked = {2, 3}
 
+    explored = []
+
     t0 = time.perf_counter()
 
     q = deque([start])
@@ -48,7 +50,8 @@ def bfs(grid, start: Coord, goal: Coord) -> SearchResult:
     while q:
         current = q.popleft()
         nodes_expanded += 1
-
+        explored.append(current)
+        
         if current == goal:
             break
 
@@ -65,11 +68,15 @@ def bfs(grid, start: Coord, goal: Coord) -> SearchResult:
     path = build_path(parent, start, goal)
     t1 = time.perf_counter()
 
+    print(f"BFS Explored: {explored}")
+
     return SearchResult(path=path, nodes_expanded=nodes_expanded, runtime=t1 - t0)
 
 def dfs(grid, start: Coord, goal: Coord) -> SearchResult:
     size = len(grid)
     blocked = {2, 3}
+
+    explored = []
 
     t0 = time.perf_counter()
 
@@ -81,6 +88,7 @@ def dfs(grid, start: Coord, goal: Coord) -> SearchResult:
     while stack:
         current = stack.pop()
         nodes_expanded += 1
+        explored.append(current)
 
         if current == goal:
             break
@@ -98,11 +106,15 @@ def dfs(grid, start: Coord, goal: Coord) -> SearchResult:
     path = build_path(parent, start, goal)
     t1 = time.perf_counter()
 
+    print(f"DFS Explored: {explored}")
+
     return SearchResult(path=path, nodes_expanded=nodes_expanded, runtime=t1 - t0)
 
 def ucs(grid, start: Coord, goal: Coord) -> SearchResult:
     size = len(grid)
     blocked = {2, 3}
+
+    explored = []
 
     t0 = time.perf_counter()
 
@@ -121,6 +133,7 @@ def ucs(grid, start: Coord, goal: Coord) -> SearchResult:
             continue
         visited.add(current)
         nodes_expanded += 1
+        explored.append(current)
 
         if current == goal:
             break
@@ -137,5 +150,7 @@ def ucs(grid, start: Coord, goal: Coord) -> SearchResult:
 
     path = build_path(parent, start, goal)
     t1 = time.perf_counter()
+
+    print(f"UCS Explored: {explored}")
 
     return SearchResult(path=path, nodes_expanded=nodes_expanded, runtime=t1 - t0)

@@ -11,31 +11,42 @@ class Grid:
             raise ValueError(f"Grid size must be at least {MIN_GRID_SIZE}")
 
         config.GRID_SIZE = self.grid_size
+
+        self.agent_coords = (19, 0)
+        self.treasure_coords = [(1, 18), (16, 16), (1, 0)]
+        self.traps_coords = [(1, 1), (1,17)]
+        self.walls_coords = [(2, 17), (0, 16), (16, 15), (16, 17), (17, 16), (8, 0), (7,5)]
         
-        self.num_walls = self.calculate_num_walls()
+        # self.num_walls = self.calculate_num_walls()   // for when you want to generate the walls randomly
+        # self.num_traps = self.calculate_num_traps()   // for when you want to generate the traps randomly
+        
         self.generate_grid()
         
-    def calculate_num_walls(self):
-        return int(self.grid_size**2 * 0.10)
+    # def calculate_num_walls(self):
+    #     return int(np.random.randint(5, 10))
+
+    # def calculate_num_traps(self):
+    #     return int(2)
     
     def generate_grid(self):
         for _ in range(100):
             self.grid = np.zeros((self.grid_size, self.grid_size), dtype=int)
 
-            treasure_x, treasure_y = self.get_random_empty_cell()
-            self.grid[treasure_x, treasure_y] = 1
+            startx, starty = self.agent_coords
+            self.grid[startx, starty] = 4
 
-            trap_x, trap_y = self.get_random_empty_cell()
-            self.grid[trap_x, trap_y] = 2
+            for tx, ty in self.treasure_coords:
+                self.grid[tx, ty] = 1
 
-            for _ in range(self.num_walls):
-                wall_x, wall_y = self.get_random_empty_cell()
+            for trap_x, trap_y in self.traps_coords:
+                self.grid[trap_x, trap_y] = 2
+
+            for wall_x, wall_y in self.walls_coords:
                 self.grid[wall_x, wall_y] = 3
 
-            start = self._find_start()
-            goal = (treasure_x, treasure_y)
+            start = (startx, starty)
 
-            if self._solution_exists(start, goal):
+            if self._solution_exists(start):
                 return
 
         raise RuntimeError("Failed to generate a valid grid after 100 attempts")
@@ -52,14 +63,10 @@ class Grid:
     
     def get_grid(self):
         return self.grid
-    
-    def _find_start(self):
-        for row in range(self.grid_size):
-            for col in range(self.grid_size):
-                if self.grid[row, col] == 0:
-                    return row, col
-        return (0, 0)
 
-    def _solution_exists(self, start, goal):
-        result = dfs(self.grid, start, goal)
-        return len(result.path) > 0
+    def _solution_exists(self, start):
+        for goal in self.treasure_coords:
+            result = dfs(self.grid, start, goal)
+            if len(result.path) > 0:
+                return True
+        return False

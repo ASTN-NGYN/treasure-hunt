@@ -150,7 +150,7 @@ class TreasureHuntApp:
         self._create_new_map()
 
     def _create_new_map(self):
-        grid = Grid(10)
+        grid = Grid(20)
         self._map_view = TreasureHuntMap(grid.get_grid(), root=self.root, on_reset=self.reset)
 
     def reset(self):

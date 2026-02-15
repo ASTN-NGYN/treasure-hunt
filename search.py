@@ -154,3 +154,48 @@ def ucs(grid, start: Coord, goal: Coord) -> SearchResult:
     print(f"UCS Explored: {explored}")
 
     return SearchResult(path=path, nodes_expanded=nodes_expanded, runtime=t1 - t0)
+
+def a_star(grid, start: Coord, goal: Coord, heuristic) -> SearchResult:
+    size = len(grid)
+    blocked = {2, 3}
+
+    explored = []
+
+    t0 = time.perf_counter()
+
+    start_row, start_col = start
+    heap = [(heuristic, 0, start_row, start_col)]
+    visited = set()
+    parent = {}
+    nodes_expanded = 0
+
+    while heap:
+        f, g, row, col = heapq.heappop(heap)
+        current = (row, col)
+
+        if current in visited:
+            continue
+        visited.add(current)
+        nodes_expanded += 1
+        explored.append(current)
+
+        if current == goal:
+            break
+
+        for nb in get_successor_functions(current, size):
+            nrow, ncol = nb
+            if grid[nrow][ncol] in blocked:
+                continue
+            if nb in visited:
+                continue
+            new_g = g + 1
+            new_f = new_g + heuristic
+            heapq.heappush(heap, (new_f, new_g, nrow, ncol))
+            parent[nb] = current
+
+    path = build_path(parent, start, goal)
+    t1 = time.perf_counter()
+
+    print(f"A* Explored: {explored}")
+
+    return SearchResult(path=path, nodes_expanded=nodes_expanded, runtime=t1 - t0)

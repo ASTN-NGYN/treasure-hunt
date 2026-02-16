@@ -2,6 +2,9 @@ import numpy as np
 from config import MIN_GRID_SIZE
 import config
 from search import dfs
+from typing import Tuple
+
+Coord = Tuple[int, int]
 
 class Grid:
     def __init__(self, grid_size):
@@ -17,8 +20,8 @@ class Grid:
         self.traps_coords = [(1, 1), (1,17)]
         self.walls_coords = [(2, 17), (0, 16), (16, 15), (16, 17), (17, 16), (8, 0), (7,5)]
         
-        # self.random_walls = self.calculate_num_walls()   # for when you want to generate the walls randomly
-        # self.random_traps = self.calculate_num_traps()   # for when you want to generate the traps randomly
+        self.random_walls = self.calculate_num_walls()   # for when you want to generate the walls randomly
+        self.random_traps = self.calculate_num_traps()   # for when you want to generate the traps randomly
         
         self.generate_grid()
         
@@ -44,24 +47,33 @@ class Grid:
             for wall_x, wall_y in self.walls_coords:
                 self.grid[wall_x, wall_y] = 3
 
+            start = (startx, starty)
 
-            #--------------Random-------------------
-            # # For when you are generating random Treasure
-            # for _ in range(2):
-            #     treasure_x, treasure_y = self.get_random_empty_cell()
-            #     self.grid[treasure_x, treasure_y] = 1
+            if self._solution_exists(start):
+                return
 
-            # # For when you are generating random Traps
-            # for _ in range(self.random_traps):
-            #     trap_x, trap_y = self.get_random_empty_cell()
-            #     self.grid[trap_x, trap_y] = 2
+        raise RuntimeError("Failed to generate a valid grid after 100 attempts")
 
-            # # For when you are generating random Walls
-            # for _ in range(self.random_walls):
-            #     wall_x, wall_y = self.get_random_empty_cell()
-            #     self.grid[wall_x, wall_y] = 3
-            #----------------------------------------
+    # Generate a random grid with random walls, traps, and treasures
+    def generate_random_grid(self):
+        for _ in range(100):
+            self.grid = np.zeros((self.grid_size, self.grid_size), dtype=int)
 
+            startx, starty = self.agent_coords
+            self.grid[startx, starty] = 4
+
+            for _ in range(2):
+                treasure_x, treasure_y = self.get_random_empty_cell()
+                self.grid[treasure_x, treasure_y] = 1
+
+            for _ in range(self.random_traps):
+                trap_x, trap_y = self.get_random_empty_cell()
+                self.grid[trap_x, trap_y] = 2
+
+            for _ in range(self.random_walls):
+                wall_x, wall_y = self.get_random_empty_cell()
+                self.grid[wall_x, wall_y] = 3
+            
             start = (startx, starty)
 
             if self._solution_exists(start):
@@ -81,6 +93,19 @@ class Grid:
     
     def get_grid(self):
         return self.grid
+
+    def get_shortest_treasure(self, start: Coord) -> Coord | None:
+        min_distance = float('inf')
+        closest_treasure = None
+        for treasure_coord in self.treasure_coords:
+            distance = self._manhattan_distance(start, treasure_coord)
+            if distance < min_distance:
+                min_distance = distance
+                closest_treasure = treasure_coord
+        return closest_treasure
+    
+    def _manhattan_distance(self, current: Coord, goal: Coord) -> int:
+        return abs(current[0] - goal[0]) + abs(current[1] - goal[1])
 
     def _solution_exists(self, start):
         for goal in self.treasure_coords:

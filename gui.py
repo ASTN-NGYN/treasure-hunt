@@ -5,9 +5,10 @@ from search import SearchResult, bfs, dfs, ucs, greedy, a_star
 
 # Treasure Map
 class TreasureHuntMap:
-    def __init__(self, grid_array, *, root: tk.Tk | None = None, on_reset=None):
-        self.grid_array = grid_array
-        self.grid_size = len(grid_array)
+    def __init__(self, grid: Grid, *, root: tk.Tk | None = None, on_reset=None):
+        self.grid = grid
+        self.grid_array = grid.get_grid()
+        self.grid_size = len(self.grid_array)
         self.window = root or tk.Tk()
         self.window.title("Treasure Hunt")
         self.window.maxsize(1500,800)
@@ -122,7 +123,8 @@ class TreasureHuntMap:
         )
 
     def _run_search(self, algo_name: str, func):
-        start, goal = self._find_start_and_goal()
+        start = self.grid.agent_coords
+        goal = self.grid.get_shortest_treasure(start) or (self.grid_size - 1, self.grid_size - 1)
         result = func(self.grid_array, start, goal)
         self._show_result(algo_name, result)
 
@@ -160,7 +162,7 @@ class TreasureHuntApp:
 
     def _create_new_map(self):
         grid = Grid(20)
-        self._map_view = TreasureHuntMap(grid.get_grid(), root=self.root, on_reset=self.reset)
+        self._map_view = TreasureHuntMap(grid, root=self.root, on_reset=self.reset)
 
     def reset(self):
         # Destroy map (if any)

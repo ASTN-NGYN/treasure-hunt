@@ -244,7 +244,7 @@ def greedy(grid, start: Coord, goal_array: GoalArray) -> SearchResult:
         else:
             full_path = full_path + path_to_goal[1:]
         total_nodes_expanded += nodes_expanded
-        #current_start = goal
+        current_start = goal
 
     t1 = time.perf_counter()
     return SearchResult(path=full_path, nodes_expanded=total_nodes_expanded, runtime=t1 - t0)

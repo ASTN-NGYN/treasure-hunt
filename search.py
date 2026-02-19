@@ -7,6 +7,8 @@ import time
 
 Coord = Tuple[int, int]
 
+GoalArray = List[Coord]
+
 @dataclass
 class SearchResult:
     path: List[Coord]
@@ -200,45 +202,52 @@ def a_star(grid, start: Coord, goal: Coord) -> SearchResult:
 
     return SearchResult(path=path, nodes_expanded=nodes_expanded, runtime=t1 - t0)
 
-def greedy(grid, start: Coord, goal: Coord) -> SearchResult:
+def greedy(grid, start: Coord, goal_array: GoalArray) -> SearchResult:
     size = len(grid)
     blocked = {2, 3}
-
-    explored = []
-
     t0 = time.perf_counter()
+    full_path = []
+    current_start = start
+    total_nodes_expanded = 0
 
-    heap = [(0, start)] # (heuristic value, (row, col))
-    visited = {start}
-    parent = {}
-    nodes_expanded = 0
+    for goal in goal_array:
+        heap = [(0, current_start)]
+        visited = {current_start}
+        parent = {}
+        nodes_expanded = 0
+        path_to_goal = []
 
-    while heap:
-        h_cost, current = heapq.heappop(heap)
-        nodes_expanded += 1
-        explored.append((current, h_cost))
+        while heap:
+            _, current = heapq.heappop(heap)
+            nodes_expanded += 1
 
-        if current == goal:
+            if current == goal:
+                path_to_goal = build_path(parent, current_start, goal)
+                break
+
+            for nb in get_successor_functions(current, size):
+                nrow, ncol = nb
+                if grid[nrow][ncol] in blocked:
+                    continue
+                if nb in visited:
+                    continue
+                visited.add(nb)
+                heuristic_cost = _manhattan_distance(nb, goal)
+                heapq.heappush(heap, (heuristic_cost, nb))
+                parent[nb] = current
+
+        if not path_to_goal:
             break
 
-        for nb in get_successor_functions(current, size):
-            nrow, ncol = nb
-            if grid[nrow][ncol] in blocked:
-                continue
-            if nb in visited:
-                continue
-            
-            visited.add(nb)
-            heuristic_cost = _manhattan_distance(nb, goal)
-            heapq.heappush(heap, (heuristic_cost, nb))
-            parent[nb] = current
+        if not full_path:
+            full_path = path_to_goal
+        else:
+            full_path = full_path + path_to_goal[1:]
+        total_nodes_expanded += nodes_expanded
+        #current_start = goal
 
-    path = build_path(parent, start, goal)
     t1 = time.perf_counter()
-
-    print(f"Greedy Explored: {explored}")
-
-    return SearchResult(path=path, nodes_expanded=nodes_expanded, runtime=t1 - t0)
+    return SearchResult(path=full_path, nodes_expanded=total_nodes_expanded, runtime=t1 - t0)
 
 def _manhattan_distance(current: Coord, goal: Coord) -> int:
     return abs(current[0] - goal[0]) + abs(current[1] - goal[1])

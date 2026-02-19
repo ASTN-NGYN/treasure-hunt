@@ -15,10 +15,10 @@ class Grid:
 
         config.GRID_SIZE = self.grid_size
 
-        self.agent_coords = (19, 0)
-        self.treasure_coords = [(1, 18), (16, 16), (1, 0)]
-        self.traps_coords = [(1, 1), (1,17)]
-        self.walls_coords = [(2, 17), (0, 16), (16, 15), (16, 17), (17, 16), (8, 0), (7,5)]
+        self.agent_coords = (0, 0)
+        self.treasure_coords = [(19, 19)]
+        self.traps_coords = [(5, 5), (10, 14), (14, 7)]
+        self.walls_coords = [(0,7), (1,7), (2,7), (3,7), (4,7), (5,7), (6,7), (7,8), (8,8)]
         
         self.random_walls = self.calculate_num_walls()   # for when you want to generate the walls randomly
         self.random_traps = self.calculate_num_traps()   # for when you want to generate the traps randomly

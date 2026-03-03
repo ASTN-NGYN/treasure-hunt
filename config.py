@@ -1,19 +1,18 @@
-GRID_SIZE = 8       # default grid size
-MIN_GRID_SIZE = 8
-CELL_SIZE = 35
+GRID_SIZE = 15
+CELL_SIZE = 40
 
 COLORS = {
     'empty': '#eceff1',  # empty cell - gray
     'treasure': '#8dd7fc', # treasure  - pink
     'trap': '#f7b9fa',   # trap - blue
     'wall': '#fcba03',   # wall - orange
-    'start': '#88e788',  # start - green
+    'A': '#88e788',  # start - green
+    'B': '#ff8a80'   # target - red
 }
 
-SYMBOLS = {
-    0: '',      # empty cell
-    1: 'T',     # treasure
-    2: 'X',     # trap
-    3: '#',     # wall
-    4: 'S',     # start
-}
+ACTIONS = [
+    (-1, 0),  # up
+    (1, 0),   # down
+    (0, -1),  # left
+    (0, 1)    # right
+]

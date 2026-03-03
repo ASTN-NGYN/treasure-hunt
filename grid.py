@@ -55,20 +55,20 @@ class Grid:
 
     def get_state(self):
         return {
-            "a_pos": self.a_pos,
-            "b_pos": self.b_pos,
+            "a_pos":     self.a_pos,
+            "b_pos":     self.b_pos,
             "treasures": set(self.treasures),
-            "traps": set(self.traps),
-            "walls": set(self.walls),
-            "turn": self.turn,
-            "a_score": self.a_score,
-            "b_score": self.b_score,
+            "traps":     set(self.traps),
+            "walls":     set(self.walls),
+            "turn":      self.turn,
+            "a_score":   self.a_score,
+            "b_score":   self.b_score,
         }
 
     def update_state(self, state):
-        self.a_pos = state["a_pos"]
-        self.b_pos = state["b_pos"]
+        self.a_pos     = state["a_pos"]
+        self.b_pos     = state["b_pos"]
         self.treasures = state["treasures"]
-        self.turn = state["turn"]
-        self.a_score = state.get("a_score", self.a_score)
-        self.b_score = state.get("b_score", self.b_score)
+        self.turn      = state["turn"]
+        self.a_score   = state.get("a_score", self.a_score)
+        self.b_score   = state.get("b_score", self.b_score)

@@ -32,6 +32,9 @@ class TreasureHuntMap:
         )
         self.canvas.pack(padx=10, pady=(10, 6))
 
+        self.a_score = 0
+        self.b_score = 0
+
         self.draw_grid()
 
         controls = tk.Frame(self.frame)
@@ -219,7 +222,7 @@ class TreasureHuntMap:
             return
         if not self.grid.treasure_coords:
             self._auto_playing = False
-            self._metrics_var.set((self._metrics_var.get() or "") + " — Game over (no treasures).")
+            self._announce_winner()
             return
         state = GameState(
             self.grid_array,
@@ -232,7 +235,7 @@ class TreasureHuntMap:
         )
         if not state.get_legal_moves():
             self._auto_playing = False
-            self._metrics_var.set((self._metrics_var.get() or "") + " — Game over (A has no moves).")
+            self._announce_winner()
             return
         metrics = Metrics()
         start_time = time.perf_counter()
@@ -252,6 +255,9 @@ class TreasureHuntMap:
             return
         if not self.grid.treasure_coords:
             self._auto_playing = False
+            self._announce_winner()
+            return 
+            
         prune_ratio = (metrics.pruned / metrics.nodes_expanded) if metrics.nodes_expanded else 0
         algo_name = (self._auto_algo or "minimax").capitalize()
         label = (
@@ -273,6 +279,7 @@ class TreasureHuntMap:
 
         if (new_row, new_col) in self.grid.treasure_coords:
             self.grid.treasure_coords.remove((new_row, new_col))
+            self.a_score += 1
 
         self.grid.agent_a_coords = (new_row, new_col)
         self.grid_array[new_row][new_col] = 4
@@ -317,6 +324,7 @@ class TreasureHuntMap:
 
         if move in self.grid.treasure_coords:
             self.grid.treasure_coords.remove(move)
+            self.b_score += 1
 
         self.grid.agent_b_coords = move
         self.grid_array[move[0]][move[1]] = 5
@@ -326,6 +334,19 @@ class TreasureHuntMap:
     def destroy(self):
         self.frame.destroy()
 
+    def _announce_winner(self):
+        if self.a_score > self.b_score:
+            result = f"Game over. Winner: A (A={self.a_score}, B={self.b_score})"
+        elif self.b_score > self.a_score:
+            result = f"Game over. Winner: B (A={self.a_score}, B={self.b_score})"
+        else:
+            result = f"Game over. Tie (A={self.a_score}, B={self.b_score})"
+
+        # Show in the metrics label:
+        self._metrics_var.set((self._metrics_var.get() or "") + " — " + result)
+
+        # And optionally print to the console:
+        print(result)
 
 class TreasureHuntApp:
     def __init__(self):

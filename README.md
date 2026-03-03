@@ -49,11 +49,27 @@ Experimentation & Results:
    - For Greedy, the heap stores only (h, coord). We expand the node that appears closest to the goal (smallest h) without considering the cost so far g(n). It explores toward the goal greedily but does not guarantee the shortest path.
    - A* is better when the shortest path is important (it guarantees optimality). Greedy can be faster in terms of nodes expanded and runtime but may find a longer path.
 
+Comparison of Minimax and Alpha-Beta Pruning:
+
+| Algorithm    | Depth | Execution Time(s) | Outcome |
+|--------------|-------|-------------------|---------|
+| Minimax      | 2     | 0.34 ms           | Won     |
+| Minimax      | 4     | 17.26 ms          | Loss    |
+| Minimax      | 6     | 37.87             | Won     |
+| Alpha-Beta   | 2     | 0.36 ms           | Loss    |
+| Alpha-Beta   | 4     | 1.01 ms           | Won     |
+| Alpha-Beta   | 6     | 22.13 ms          | Loss    |
+
+
 Use of Generative AI Statement:
 
 After generating our grid, we noticed there were cases where the start point was trapped by walls and/or traps which would make a solution for that grid impossible. We used AI to brainstorm solutions to this edge case. After looking at the ideas, we chose the solution of continuous regenerating grids until there was a valid grid. We decided upon this solution because this was a very rare edge case, so it would be highly unlikely of causing a runtime error.
 
 Refactoring gui.py to call grid.py led to several attribute errors. Through AI debugging, we realized we were passing the data structure rather than an instance of the class, which fixed our inability to access specific methods and variables.
+
+Assignment 3:
+For the minimax and alpha-beta pruning we used A.I. to give us the foundation for how minimax and alpha-beta pruning looks like. Afterwards, we tweaked the code to fit the requirements of the assignment more. For example, the agents before our changes would go over traps and go onto the same cell. We went back to tweak the code so that it would not make these mistakes. We also used A.I. and prompt it to fix some of the bugs we noticed. There were many cases where an agent would be oscilating between two cells or in a circular pattern. We discovered that it was because of how the utility score was being calculated. A combination of the manhattan distance and score made it to where two cells or more could have the same values which would cause the agent to revisit the same cells in an infinite cycle. Using AI, we were able to fix this by tracking recent positions of the agents. If an agent is in a position that it was two moves ago it will then penalize that position making that move less desirable.
+
 
 <img width="733" height="829" alt="image" src="https://github.com/user-attachments/assets/39c8f41c-e2be-42a8-9b50-ddcffab8e3c4" />
 

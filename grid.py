@@ -31,10 +31,6 @@ class Grid:
         self._generate_random_layout()
         self._create_grid()
 
-    # -------------------------------------------------
-    # Grid Creation
-    # -------------------------------------------------
-
     def _random_empty_cell(self, occupied):
         """Return a random coordinate not already in occupied."""
         while True:
@@ -106,10 +102,6 @@ class Grid:
         self.grid[ar, ac] = 4
         self.grid[br, bc] = 5
 
-    # -------------------------------------------------
-    # Public API for GUI / GameState
-    # -------------------------------------------------
-
     def get_grid(self):
         return self.grid
 
@@ -137,10 +129,6 @@ class Grid:
         if coord in self.treasure_coords:
             self.treasure_coords.remove(coord)
             self.grid[coord[0], coord[1]] = 0
-
-    # -------------------------------------------------
-    # Utility
-    # -------------------------------------------------
 
     def is_valid_cell(self, row: int, col: int) -> bool:
         if row < 0 or row >= self.grid_size:

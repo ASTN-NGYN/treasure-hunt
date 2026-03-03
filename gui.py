@@ -37,21 +37,21 @@ class TreasureHuntMap:
         controls = tk.Frame(self.frame)
         controls.pack(pady=(6, 4))
 
-        # ---- MINIMAX ----
+        # MINIMAX
         tk.Button(
             controls,
-            text="Minimax D2",
+            text="Minimax Step",
             command=lambda: self.run_minimax(6)
         ).pack(side="left", padx=4)
 
-        # ---- ALPHA-BETA ----
+        # ALPHA-BETA
         tk.Button(
             controls,
-            text="AlphaBeta D4",
-            command=lambda: self.run_alphabeta(4)
+            text="AlphaBeta Step",
+            command=lambda: self.run_alphabeta(6)
         ).pack(side="left", padx=4)
 
-        # ---- RESET ----
+        # RESET
         if self._on_reset:
             tk.Button(
                 controls,
@@ -74,7 +74,7 @@ class TreasureHuntMap:
         )
         self._metrics_label.pack(fill="x", padx=10, pady=(2, 10))
 
-        # Track A's recent positions to reduce oscillation in depth-limited search.
+        # Track A's recent positions to reduce oscillation in depth-limited search
         self._prev_agent_a = None
         self._prev2_agent_a = None
         # Auto-play state.
@@ -82,13 +82,9 @@ class TreasureHuntMap:
         self._auto_algo = None
         self._auto_depth = None
 
-        tk.Button(controls, text="Auto Play (Minimax D2)", command=lambda: self._start_auto_play("minimax", 6)).pack(side="left", padx=4)
-        tk.Button(controls, text="Auto Play (AlphaBeta D4)", command=lambda: self._start_auto_play("alphabeta", 4)).pack(side="left", padx=4)
+        tk.Button(controls, text="Auto Play Minimax", command=lambda: self._start_auto_play("minimax", 6)).pack(side="left", padx=4)
+        tk.Button(controls, text="Auto Play AlphaBeta", command=lambda: self._start_auto_play("alphabeta", 6)).pack(side="left", padx=4)
         tk.Button(controls, text="Stop", command=self._stop_auto_play).pack(side="left", padx=4)
-
-    # -----------------------------------------------------
-    # DRAW GRID
-    # -----------------------------------------------------
 
     def draw_grid(self):
         self.canvas.delete("all")
@@ -135,10 +131,6 @@ class TreasureHuntMap:
                         fill='black'
                     )
 
-    # -----------------------------------------------------
-    # MINIMAX
-    # -----------------------------------------------------
-
     def run_minimax(self, depth):
         metrics = Metrics()
         state = GameState(
@@ -168,10 +160,6 @@ class TreasureHuntMap:
             f"Nodes: {metrics.nodes_expanded}, "
             f"Time: {(end_time - start_time) * 1000:.2f} ms"
         )
-
-    # -----------------------------------------------------
-    # ALPHA-BETA
-    # -----------------------------------------------------
 
     def run_alphabeta(self, depth):
         metrics = Metrics()
@@ -277,10 +265,6 @@ class TreasureHuntMap:
         if self._auto_playing:
             self.window.after(400, self._auto_play_next)
 
-    # -----------------------------------------------------
-    # APPLY MOVES
-    # -----------------------------------------------------
-
     def _apply_agent_a_move(self, move):
         old_row, old_col = self.grid.agent_a_coords
         new_row, new_col = move
@@ -342,10 +326,6 @@ class TreasureHuntMap:
     def destroy(self):
         self.frame.destroy()
 
-
-# ---------------------------------------------------------
-# MAIN APP
-# ---------------------------------------------------------
 
 class TreasureHuntApp:
     def __init__(self):

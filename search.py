@@ -20,21 +20,21 @@ def evaluate(state):
     treasures = state["treasures"]
     traps = state["traps"]
 
-    score += (state.get("a_score", 0) - state.get("b_score", 0)) * 20
+    score += (state.get("a_score", 0) - state.get("b_score", 0)) * 60
 
     if treasures:
         dist_a = min(manhattan(state["a_pos"], t) for t in treasures)
         dist_b = min(manhattan(state["b_pos"], t) for t in treasures)
-        score -= dist_a * 3
-        score += dist_b * 2
+        score -= dist_a * 2
+        score += dist_b
 
     for trap in traps:
         d_a = manhattan(state["a_pos"], trap)
         d_b = manhattan(state["b_pos"], trap)
         if d_a <= 2:
-            score -= (3 - d_a) * 5
+            score -= (3 - d_a) * 2
         if d_b <= 2:
-            score += (3 - d_b) * 3
+            score += (3 - d_b) * 2
 
     return score
 
@@ -121,15 +121,23 @@ def minimax(state, depth):
     best_move = None
     current_turn = state["turn"]
     best_val = -float("inf") if current_turn == "A" else float("inf")
+    tying_moves = []  # collect all moves that tie for best
 
     for m in get_valid_moves(state, current_turn):
         child = apply_move(state, m)
         val = recurse(child, depth - 1)
-        if current_turn == "A" and val > best_val:
-            best_val, best_move = val, m
-        elif current_turn == "B" and val < best_val:
-            best_val, best_move = val, m
+        if current_turn == "A":
+            if val > best_val:
+                best_val, tying_moves = val, [m]
+            elif val == best_val:
+                tying_moves.append(m)
+        else:
+            if val < best_val:
+                best_val, tying_moves = val, [m]
+            elif val == best_val:
+                tying_moves.append(m)
 
+    best_move = random.choice(tying_moves) if tying_moves else None
     return best_move, nodes, time.time() - start
 
 
@@ -180,19 +188,25 @@ def alphabeta(state, depth):
     current_turn = state["turn"]
     best_val = -float("inf") if current_turn == "A" else float("inf")
     alpha, beta = -float("inf"), float("inf")
+    typing_moves = []
 
     for m in get_valid_moves(state, current_turn):
         child = apply_move(state, m)
         val = recurse(child, depth - 1, alpha, beta)
         if current_turn == "A":
             if val > best_val:
-                best_val, best_move = val, m
+                best_val, tying_moves = val, [m]
+            elif val == best_val:
+                tying_moves.append(m)
             alpha = max(alpha, best_val)
         else:
             if val < best_val:
-                best_val, best_move = val, m
+                best_val, tying_moves = val, [m]
+            elif val == best_val:
+                tying_moves.append(m)
             beta = min(beta, best_val)
 
+    best_move = random.choice(tying_moves) if tying_moves else None
     return best_move, nodes, pruned, time.time() - start
 
 

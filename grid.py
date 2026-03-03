@@ -25,7 +25,7 @@ class Grid:
         # Walls (avoid agent start positions)
         self.walls = set()
         attempts = 0
-        while len(self.walls) < 30 and attempts < 1000:
+        while len(self.walls) < 10 and attempts < 1000:
             pos = self.random_cell()
             if pos not in reserved:
                 self.walls.add(pos)

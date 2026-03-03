@@ -3,7 +3,7 @@ import heapq
 from collections import deque
 from dataclasses import dataclass
 from typing import Dict, Iterable, List, Tuple
-import time
+import time, math
 
 Coord = Tuple[int, int]
 
@@ -242,3 +242,61 @@ def greedy(grid, start: Coord, goal: Coord) -> SearchResult:
 
 def _manhattan_distance(current: Coord, goal: Coord) -> int:
     return abs(current[0] - goal[0]) + abs(current[1] - goal[1])
+
+def evaluate_state(grid_array, agent_pos, opponent_pos, treasures, history_a=None, history_b=None):
+    if not treasures:
+        return 0
+
+    # Distance for A
+    dist_a = min(_manhattan_distance(agent_a_pos, t) for t in treasures)
+    # Distance for B
+    dist_b = min(_manhattan_distance(agent_b_pos, t) for t in treasures)
+
+    # Score = (Proximity Advantage) + (Treasure Count Advantage)
+    # If A is closer, score is positive. If B is closer, score is negative.
+    score = (dist_b - dist_a) 
+    
+    # Add penalties for history to stop circling
+    if history_a and agent_a_pos in history_a: score -= 50
+    if history_b and agent_b_pos in history_b: score += 50 # Help B avoid circles too
+
+    return score
+
+def alpha_beta(grid, depth, alpha, beta, is_maximizing, agent_pos, opp_pos, treasures, history=None):
+    # Terminal state or depth limit
+    if depth == 0 or not treasures:
+        return evaluate_state(grid, agent_pos, opp_pos, treasures) + depth, None
+
+    nodes_expanded = 1
+    best_move = None
+    
+    # Get possible moves (Up, Right, Down, Left)
+    possible_moves = []
+    current_p = agent_pos if is_maximizing else opp_pos
+    for next_p in get_successor_functions(current_p, len(grid)):
+        if grid[next_p[0]][next_p[1]] != 3: # Not a wall
+            possible_moves.append(next_p)
+
+    if is_maximizing:
+        max_eval = -math.inf
+        for move in possible_moves:
+            # Simulate move
+            eval, _ = alpha_beta(grid, depth - 1, alpha, beta, False, move, opp_pos, treasures)
+            if eval > max_eval:
+                max_eval = eval
+                best_move = move
+            alpha = max(alpha, eval)
+            if beta <= alpha:
+                break # Pruning
+        return max_eval, best_move
+    else:
+        min_eval = math.inf
+        for move in possible_moves:
+            eval, _ = alpha_beta(grid, depth - 1, alpha, beta, True, agent_pos, move, treasures)
+            if eval < min_eval:
+                min_eval = eval
+                best_move = move
+            beta = min(beta, eval)
+            if beta <= alpha:
+                break # Pruning
+        return min_eval, best_move

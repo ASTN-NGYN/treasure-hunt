@@ -7,23 +7,36 @@ from typing import Tuple
 Coord = Tuple[int, int]
 
 class Grid:
-    def __init__(self, grid_size):
+    def __init__(self, grid_size=15):
         self.grid_size = grid_size
+        self.agent_a_pos = (0, 0)
+        self.agent_b_pos = (14, 14)
+        self.treasures = [] 
+        self.traps = []
+        self.walls = []
+        self.generate_random_setup()
 
-        if self.grid_size < MIN_GRID_SIZE:
-            raise ValueError(f"Grid size must be at least {MIN_GRID_SIZE}")
+    def generate_random_setup(self):
+        self.grid = np.zeros((self.grid_size, self.grid_size), dtype=int)
+        # 1. Place 3-5 Treasures (Value 1)
+        for _ in range(np.random.randint(3, 6)):
+            pos = self.get_random_empty_cell()
+            self.treasures.append(pos)
+            self.grid[pos] = 1
+            
+        # 2. Place 2-3 Traps (Value 2)
+        for _ in range(np.random.randint(2, 4)):
+            pos = self.get_random_empty_cell()
+            self.grid[pos] = 2
 
-        config.GRID_SIZE = self.grid_size
-
-        self.agent_coords = (0, 0)
-        self.treasure_coords = [(19, 19)]
-        self.traps_coords = [(5, 5), (10, 14), (14, 7)]
-        self.walls_coords = [(0,7), (1,7), (2,7), (3,7), (4,7), (5,7), (6,7), (7,8), (8,8)]
-        
-        self.random_walls = self.calculate_num_walls()   # for when you want to generate the walls randomly
-        self.random_traps = self.calculate_num_traps()   # for when you want to generate the traps randomly
-        
-        self.generate_grid()
+        # 3. Place Walls (Value 3)
+        for _ in range(20):
+            pos = self.get_random_empty_cell()
+            self.grid[pos] = 3
+            
+        # 4. Set Agents (Value 4 for A, 5 for B)
+        self.grid[self.agent_a_pos] = 4
+        self.grid[self.agent_b_pos] = 5
         
     def calculate_num_walls(self):
         return int(np.random.randint(5, 10))

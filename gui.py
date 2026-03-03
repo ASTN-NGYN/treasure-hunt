@@ -1,7 +1,8 @@
 import tkinter as tk
 from config import CELL_SIZE, COLORS, SYMBOLS
 from grid import Grid
-from search import SearchResult, bfs, dfs, ucs, greedy, a_star
+from search import SearchResult, bfs, dfs, ucs, greedy, a_star, alpha_beta
+import time
 
 # Treasure Map
 class TreasureHuntMap:
@@ -10,140 +11,189 @@ class TreasureHuntMap:
         self.grid_array = grid.get_grid()
         self.grid_size = len(self.grid_array)
         self.window = root or tk.Tk()
-        self.window.title("Treasure Hunt")
-        self.window.maxsize(1500,800)
-
+        self.window.title("Adversarial Treasure Hunt")
+        
         self._on_reset = on_reset
-        self._path_items: list[int] = []
+        self.turn = "A"  # Starts with Agent A
+        self.scores = {"A": 0, "B": 0}
+        self.is_running = False
 
+        # UI Layout
         self.frame = tk.Frame(self.window)
         self.frame.pack(fill="both", expand=True)
 
         table_size = self.grid_size * CELL_SIZE
         self.canvas = tk.Canvas(self.frame, width=table_size, height=table_size, bg="white")
+        self.canvas.pack(padx=10, pady=10)
 
-        self.canvas.pack(padx=10, pady=(10, 6))
+        # Controls
+        controls = tk.Frame(self.frame)
+        controls.pack(pady=5)
+
+        self.btn_ab = tk.Button(controls, text="Start Alpha-Beta (Depth 4)", command=lambda: self.start_game("AB"))
+        self.btn_ab.pack(side="left", padx=4)
+        
+        if self._on_reset:
+            tk.Button(controls, text="Reset Grid", command=self._on_reset).pack(side="left", padx=4)
+
+        # Metrics & Scoreboard
+        self._stats_var = tk.StringVar(value="Scores -> A: 0 | B: 0")
+        tk.Label(self.frame, textvariable=self._stats_var, font=('Arial', 12, 'bold')).pack()
+        
+        self._metrics_var = tk.StringVar(value="Ready to begin...")
+        tk.Label(self.frame, textvariable=self._metrics_var, fg="blue").pack()
+
+        self.move_history_a = [] # Store last 4 positions for Agent A
+        self.move_history_b = []
+        self.max_history = 4
 
         self.draw_grid()
 
-        controls = tk.Frame(self.frame)
-        controls.pack(pady=(6, 4))
-
-        tk.Button(controls, text="Run BFS", command=self.run_bfs).pack(side="left", padx=4)
-        tk.Button(controls, text="Run DFS", command=self.run_dfs).pack(side="left", padx=4)
-        tk.Button(controls, text="Run UCS", command=self.run_ucs).pack(side="left", padx=4)
-        tk.Button(controls, text="Run Greedy", command=self.run_greedy).pack(side="left", padx=4)
-        tk.Button(controls, text="Run A*", command=self.run_a_star).pack(side="left", padx=4)
-        if self._on_reset:
-            tk.Button(controls, text="Reset", command=self._on_reset).pack(side="left", padx=4)
-        else:
-            tk.Button(controls, text="Reset", command=self.window.destroy).pack(side="left", padx=4)
-        self._metrics_var = tk.StringVar(value="")
-        self._metrics_label = tk.Label(self.frame, textvariable=self._metrics_var, anchor="w", justify="left")
-        self._metrics_label.pack(fill="x", padx=10, pady=(2, 10))
-        
     def draw_grid(self):
+        self.canvas.delete("all")
         for row in range(self.grid_size):
             for col in range(self.grid_size):
-                x1 = col * CELL_SIZE
-                y1 = row * CELL_SIZE
-                x2 = x1 + CELL_SIZE
-                y2 = y1 + CELL_SIZE
+                x1, y1 = col * CELL_SIZE, row * CELL_SIZE
+                x2, y2 = x1 + CELL_SIZE, y1 + CELL_SIZE
                 
-                cell_value = self.grid_array[row][col]
+                val = self.grid_array[row][col]
+                color = COLORS.get('empty', 'white')
+                if val == 1: color = COLORS['treasure']
+                elif val == 2: color = COLORS['trap']
+                elif val == 3: color = COLORS['wall']
+                elif val == 4: color = "blue"  # Agent A
+                elif val == 5: color = "red"   # Agent B
+
+                self.canvas.create_rectangle(x1, y1, x2, y2, fill=color, outline='#a6a6a6')
                 
-                match cell_value:
-                    case 0:
-                        color = COLORS['empty']
-                    case 1:
-                        color = COLORS['treasure']
-                    case 2:
-                        color = COLORS['trap']
-                    case 3:
-                        color = COLORS['wall']
-                    case 4:
-                        color = COLORS['start']
-                    case _:
-                        color = COLORS['empty']
+                # Draw Symbols
+                symbol = SYMBOLS.get(val, '')
+                if val == 4: symbol = "A"
+                if val == 5: symbol = "B"
+                if symbol:
+                    self.canvas.create_text(x1 + CELL_SIZE/2, y1 + CELL_SIZE/2, text=symbol, font=('Arial', 10, 'bold'))
 
-                self.canvas.create_rectangle(x1, y1, x2, y2, fill=color, outline='#a6a6a6', width=1)
+    def start_game(self, algo):
+        if self.is_running: return
+        self.is_running = True
+        self.game_loop()
 
-                symbol = SYMBOLS.get(cell_value, '')
+    def game_loop(self):
+        if not self.grid.treasures or not self.is_running:
+            self.end_game()
+            return
 
-                if symbol != '':
-                    self.canvas.create_text(x1 + CELL_SIZE/2, y1 + CELL_SIZE/2, text=symbol, font=('Arial', 12, 'bold'), fill = 'black')
+        if self.turn == "A":
+            self.move_agent_a()
+            self.turn = "B"
+        else:
+            self.move_agent_b()
+            self.turn = "A"
 
-    def _find_start_and_goal(self):
-        start = None
-        goal = None
+        self.draw_grid()
+        self._stats_var.set(f"Scores -> A: {self.scores['A']} | B: {self.scores['B']}")
+        
+        # Delay for visualization
+        self.window.after(500, self.game_loop)
 
-        for row in range(self.grid_size):
-            for col in range(self.grid_size):
-                value = self.grid_array[row][col]
-                if value == 1:
-                    goal = (row, col)
-                if start is None and value == 4:
-                    start = (row, col)
-
-        if start is None:
-            start = (0, 0)
-        if goal is None:
-            goal = (self.grid_size - 1, self.grid_size - 1)
-
-        return start, goal
-
-    def _show_result(self, algo_name: str, result: SearchResult):
-        for item_id in self._path_items:
-            self.canvas.delete(item_id)
-        self._path_items.clear()
-
-        path = result.path
-        if path:
-            for (row, col) in path:
-                x1 = col * CELL_SIZE
-                y1 = row * CELL_SIZE
-                x2 = x1 + CELL_SIZE
-                y2 = y1 + CELL_SIZE
-                pad = 4
-                item_id = self.canvas.create_rectangle(
-                    x1 + pad,
-                    y1 + pad,
-                    x2 - pad,
-                    y2 - pad,
-                    outline="green",
-                    width=2,
-                )
-                self._path_items.append(item_id)
-
-        path_len = max(len(path) - 1, 0)
-        self._metrics_var.set(
-            f"{algo_name} — Path length: {path_len}, "
-            f"Nodes expanded: {result.nodes_expanded}, "
-            f"Time: {result.runtime * 1000:.2f} ms"
+    def move_agent_a(self):
+        t0 = time.perf_counter()
+        
+        # Pass the history to the alpha_beta function
+        _, next_move = alpha_beta(
+            self.grid_array, 
+            4, 
+            float('-inf'), 
+            float('inf'), 
+            True, 
+            self.grid.agent_a_pos, 
+            self.grid.agent_b_pos, 
+            self.grid.treasures,
+            history=self.move_history_a  # Pass history here
         )
+        t1 = time.perf_counter()
 
-    def _run_search(self, algo_name: str, func):
-        start = self.grid.agent_coords
-        goal = self.grid.get_shortest_treasure(start) or (self.grid_size - 1, self.grid_size - 1)
-        result = func(self.grid_array, start, goal)
-        self._show_result(algo_name, result)
+        if next_move:
+            # Update history buffer
+            self.move_history_a.append(self.grid.agent_a_pos)
+            if len(self.move_history_a) > self.max_history:
+                self.move_history_a.pop(0)
+                
+            self.update_position("A", next_move)
+            self._metrics_var.set(f"AI (A) thought for {(t1-t0)*1000:.2f}ms")
 
-    def run_bfs(self):
-        self._run_search("BFS", bfs)
+    def move_agent_b(self):
+        """
+        Agent B uses Alpha-Beta as the MINIMIZING player.
+        It tries to reach treasures to 'steal' them from Agent A or 
+        move to states that are bad for Agent A.
+        """
+        t0 = time.perf_counter()
+        
+        # We call alpha_beta with is_maximizing=False 
+        # because the evaluation function is written from Agent A's perspective.
+        _, next_move = alpha_beta(
+            self.grid_array, 
+            4, # Depth
+            float('-inf'), 
+            float('inf'), 
+            False, # is_maximizing = False for Agent B
+            self.grid.agent_a_pos, 
+            self.grid.agent_b_pos, 
+            self.grid.treasures,
+            history=self.move_history_b # Ensure history is tracked for B too
+        )
+        t1 = time.perf_counter()
 
-    def run_dfs(self):
-        self._run_search("DFS", dfs)
+        if next_move:
+            # Update history for B to prevent circling
+            self.move_history_b.append(self.grid.agent_b_pos)
+            if len(self.move_history_b) > self.max_history:
+                self.move_history_b.pop(0)
+                
+            self.update_position("B", next_move)
+            # Optional: Log performance for your report
+            print(f"Agent B moved to {next_move} (Time: {(t1-t0)*1000:.2f}ms)")
+        else:
+            # Fallback: if no move found (trapped), stay put or try random
+            print("Agent B is trapped!")
 
-    def run_ucs(self):
-        self._run_search("UCS", ucs)
+    def update_position(self, agent_id, new_move):
+        # 1. Validation: Don't move into walls
+        if self.grid_array[new_move] == 3:
+            print(f"Warning: Agent {agent_id} attempted to move into a wall at {new_move}")
+            return
 
-    def run_greedy(self):
-        self._run_search("Greedy", greedy)
+        old_pos = self.grid.agent_a_pos if agent_id == "A" else self.grid.agent_b_pos
+        
+        # 2. Update Grid Array (Clear old spot)
+        self.grid_array[old_pos] = 0 
+        
+        # 3. Handle Items
+        cell_type = self.grid_array[new_move]
+        if cell_type == 1: # Treasure collected
+            self.scores[agent_id] += 1
+            if new_move in self.grid.treasures:
+                self.grid.treasures.remove(new_move)
+        elif cell_type == 2: # Trap hit
+            self.scores[agent_id] -= 1
 
-    def run_a_star(self):
-        self._run_search("A*", a_star)
+        # 4. Update internal state
+        if agent_id == "A":
+            self.grid.agent_a_pos = new_move
+            self.grid_array[new_move] = 4
+        else:
+            self.grid.agent_b_pos = new_move
+            self.grid_array[new_move] = 5
+
+    def end_game(self):
+        self.is_running = False
+        winner = "Agent A" if self.scores["A"] > self.scores["B"] else "Agent B"
+        if self.scores["A"] == self.scores["B"]: winner = "It's a Tie!"
+        messagebox.showinfo("Game Over", f"Winner: {winner}\nFinal Score - A: {self.scores['A']} B: {self.scores['B']}")
 
     def destroy(self):
+        self.is_running = False
         self.frame.destroy()
 
 '''

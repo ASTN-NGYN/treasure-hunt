@@ -128,6 +128,12 @@ class TreasureHuntMap:
         result = func(self.grid_array, start, goal)
         self._show_result(algo_name, result)
 
+    def _run_search_greedy(self, algo_name: str, func):
+        start = self.grid.agent_coords
+        goal_array = self.grid.treasure_coords
+        result = func(self.grid_array, start, goal_array)
+        self._show_result(algo_name, result)
+
     def run_bfs(self):
         self._run_search("BFS", bfs)
 
@@ -138,7 +144,7 @@ class TreasureHuntMap:
         self._run_search("UCS", ucs)
 
     def run_greedy(self):
-        self._run_search("Greedy", greedy)
+        self._run_search_greedy("Greedy", greedy)
 
     def run_a_star(self):
         self._run_search("A*", a_star)

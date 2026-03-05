@@ -41,18 +41,23 @@ class TreasureHuntMap:
         controls = tk.Frame(self.frame)
         controls.pack(pady=(6, 4))
 
+        # Search depth input
+        self._depth_var = tk.StringVar(value="6")
+        tk.Label(controls, text="Depth:").pack(side="left", padx=(0, 2))
+        tk.Entry(controls, textvariable=self._depth_var, width=4).pack(side="left", padx=(0, 6))
+
         # MINIMAX
         tk.Button(
             controls,
             text="Minimax Step",
-            command=lambda: self.run_minimax(6)
+            command=lambda: self.run_minimax(self._get_depth())
         ).pack(side="left", padx=4)
 
         # ALPHA-BETA
         tk.Button(
             controls,
             text="AlphaBeta Step",
-            command=lambda: self.run_alphabeta(6)
+            command=lambda: self.run_alphabeta(self._get_depth())
         ).pack(side="left", padx=4)
 
         # RESET
@@ -85,10 +90,30 @@ class TreasureHuntMap:
         self._auto_playing = False
         self._auto_algo = None
         self._auto_depth = None
-
-        tk.Button(controls, text="Auto Play Minimax", command=lambda: self._start_auto_play("minimax", 6)).pack(side="left", padx=4)
-        tk.Button(controls, text="Auto Play AlphaBeta", command=lambda: self._start_auto_play("alphabeta", 6)).pack(side="left", padx=4)
+        tk.Button(
+            controls,
+            text="Auto Play Minimax",
+            command=lambda: self._start_auto_play("minimax", self._get_depth())
+        ).pack(side="left", padx=4)
+        tk.Button(
+            controls,
+            text="Auto Play AlphaBeta",
+            command=lambda: self._start_auto_play("alphabeta", self._get_depth())
+        ).pack(side="left", padx=4)
         tk.Button(controls, text="Stop", command=self._stop_auto_play).pack(side="left", padx=4)
+
+    def _get_depth(self, default: int = 6) -> int:
+        """
+        Return the user-specified search depth from the UI.
+        Falls back to `default` if the input is invalid or non-positive.
+        """
+        try:
+            depth = int(self._depth_var.get())
+            if depth <= 0:
+                raise ValueError
+            return depth
+        except Exception:
+            return default
 
     def draw_grid(self):
         self.canvas.delete("all")

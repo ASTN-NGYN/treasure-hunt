@@ -2,6 +2,14 @@ import numpy as np
 import random
 from typing import Tuple, List
 
+from config import (
+    AGENT_A_COORD,
+    AGENT_B_COORD,
+    TREASURE_COORDS,
+    TRAP_COORDS,
+    WALL_COORDS,
+)
+
 Coord = Tuple[int, int]
 
 
@@ -21,14 +29,15 @@ class Grid:
     def __init__(self, grid_size: int):
         self.grid_size = grid_size
 
-        # Layout (agents, treasures, traps, walls) is generated randomly
+        # Layout (agents, treasures, traps, walls) can be manual (from config)
+        # or generated randomly when config values are not provided.
         self.agent_a_coords: Coord
         self.agent_b_coords: Coord
         self.treasure_coords: List[Coord]
         self.traps_coords: List[Coord]
         self.walls_coords: List[Coord]
 
-        self._generate_random_layout()
+        self._generate_layout()
         self._create_grid()
 
     def _random_empty_cell(self, occupied):
@@ -39,46 +48,78 @@ class Grid:
             if (r, c) not in occupied:
                 return (r, c)
 
-    def _generate_random_layout(self):
+    def _generate_layout(self):
         """
-        Randomly generate positions for agents, treasures, traps, and walls.
-        Follows the assignment spec of:
-        - 3–5 treasures
-        - 2–3 traps
-        - Several walls
+        Generate positions for agents, treasures, traps, and walls.
+
+        If coordinates are provided in config.py they are used; otherwise
+        a random layout is generated following the original assignment spec.
         """
         occupied = set()
 
-        # Agents
-        self.agent_a_coords = self._random_empty_cell(occupied)
+        # Agents (manual if provided, otherwise random)
+        if AGENT_A_COORD is not None:
+            self.agent_a_coords = tuple(AGENT_A_COORD)  # type: ignore[arg-type]
+        else:
+            self.agent_a_coords = self._random_empty_cell(occupied)
         occupied.add(self.agent_a_coords)
 
-        self.agent_b_coords = self._random_empty_cell(occupied)
+        if AGENT_B_COORD is not None:
+            self.agent_b_coords = tuple(AGENT_B_COORD)  # type: ignore[arg-type]
+            # If B conflicts with A, fall back to random.
+            if self.agent_b_coords in occupied:
+                self.agent_b_coords = self._random_empty_cell(occupied)
+        else:
+            self.agent_b_coords = self._random_empty_cell(occupied)
         occupied.add(self.agent_b_coords)
 
-        # Treasures: 3–5
-        num_treasures = random.randint(3, 5)
-        self.treasure_coords = []
-        for _ in range(num_treasures):
-            cell = self._random_empty_cell(occupied)
-            occupied.add(cell)
-            self.treasure_coords.append(cell)
+        # Treasures
+        if TREASURE_COORDS:
+            self.treasure_coords = []
+            for cell in TREASURE_COORDS:
+                coord = tuple(cell)  # ensure tuple[int, int]
+                if coord not in occupied:
+                    self.treasure_coords.append(coord)
+                    occupied.add(coord)
+        else:
+            num_treasures = random.randint(3, 5)
+            self.treasure_coords = []
+            for _ in range(num_treasures):
+                cell = self._random_empty_cell(occupied)
+                occupied.add(cell)
+                self.treasure_coords.append(cell)
 
-        # Traps: 2–3
-        num_traps = random.randint(2, 3)
-        self.traps_coords = []
-        for _ in range(num_traps):
-            cell = self._random_empty_cell(occupied)
-            occupied.add(cell)
-            self.traps_coords.append(cell)
+        # Traps
+        if TRAP_COORDS:
+            self.traps_coords = []
+            for cell in TRAP_COORDS:
+                coord = tuple(cell)
+                if coord not in occupied:
+                    self.traps_coords.append(coord)
+                    occupied.add(coord)
+        else:
+            num_traps = random.randint(2, 3)
+            self.traps_coords = []
+            for _ in range(num_traps):
+                cell = self._random_empty_cell(occupied)
+                occupied.add(cell)
+                self.traps_coords.append(cell)
 
-        # Walls: "several" – choose 10–20
-        num_walls = random.randint(5, 10)
-        self.walls_coords = []
-        for _ in range(num_walls):
-            cell = self._random_empty_cell(occupied)
-            occupied.add(cell)
-            self.walls_coords.append(cell)
+        # Walls
+        if WALL_COORDS:
+            self.walls_coords = []
+            for cell in WALL_COORDS:
+                coord = tuple(cell)
+                if coord not in occupied:
+                    self.walls_coords.append(coord)
+                    occupied.add(coord)
+        else:
+            num_walls = random.randint(5, 10)
+            self.walls_coords = []
+            for _ in range(num_walls):
+                cell = self._random_empty_cell(occupied)
+                occupied.add(cell)
+                self.walls_coords.append(cell)
 
     def _create_grid(self):
         self.grid = np.zeros((self.grid_size, self.grid_size), dtype=int)

@@ -35,6 +35,7 @@ class TreasureHuntMap:
 
         self.a_score = 0
         self.b_score = 0
+        self._a_moves = 0
 
         self.draw_grid()
 
@@ -187,9 +188,9 @@ class TreasureHuntMap:
         self._metrics_var.set(
             f"Minimax (Depth {depth}) — "
             f"Nodes: {metrics.nodes_expanded}, "
+            f"Path: {self._a_moves}, "
             f"Time: {(end_time - start_time) * 1000:.2f} ms"
         )
-        t1 = time.perf_counter()
 
     def run_alphabeta(self, depth):
         metrics = Metrics()
@@ -231,6 +232,7 @@ class TreasureHuntMap:
             f"AlphaBeta (Depth {depth}) — "
             f"Nodes: {metrics.nodes_expanded}, "
             f"Pruned: {metrics.pruned}, "
+            f"Path: {self._a_moves}, "
             f"Ratio: {prune_ratio:.2f}, "
             f"Time: {(end_time - start_time) * 1000:.2f} ms"
         )
@@ -290,6 +292,7 @@ class TreasureHuntMap:
         label = (
             f"{algo_name} D{self._auto_depth} — "
             f"Nodes: {metrics.nodes_expanded}, "
+            f"Path: {self._a_moves}, "
             f"Time: {(end_time - start_time) * 1000:.2f} ms"
         )
         if self._auto_algo == "alphabeta":
@@ -310,6 +313,8 @@ class TreasureHuntMap:
 
         self.grid.agent_a_coords = (new_row, new_col)
         self.grid_array[new_row][new_col] = 4
+        # Count this as a step in A's path.
+        self._a_moves += 1
 
         self.draw_grid()
 

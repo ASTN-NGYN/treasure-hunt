@@ -1,225 +1,375 @@
 import tkinter as tk
-from config import CELL_SIZE, COLORS, SYMBOLS
-from grid import Grid
-from search import SearchResult, bfs, dfs, ucs, greedy, a_star, alpha_beta
+import random
 import time
 
-# Treasure Map
+from config import CELL_SIZE, COLORS, SYMBOLS, GRID_SIZE
+from grid import Grid
+from gamestate import GameState
+from adversarial import minimax, alphabeta, Metrics
+
+
 class TreasureHuntMap:
     def __init__(self, grid: Grid, *, root: tk.Tk | None = None, on_reset=None):
         self.grid = grid
         self.grid_array = grid.get_grid()
         self.grid_size = len(self.grid_array)
+
         self.window = root or tk.Tk()
-        self.window.title("Adversarial Treasure Hunt")
-        
+        self.window.title("Treasure Hunt - Adversarial AI")
+        self.window.maxsize(1500, 800)
+
         self._on_reset = on_reset
-        self.turn = "A"  # Starts with Agent A
-        self.scores = {"A": 0, "B": 0}
-        self.is_running = False
 
         # UI Layout
         self.frame = tk.Frame(self.window)
         self.frame.pack(fill="both", expand=True)
 
         table_size = self.grid_size * CELL_SIZE
-        self.canvas = tk.Canvas(self.frame, width=table_size, height=table_size, bg="white")
-        self.canvas.pack(padx=10, pady=10)
+        self.canvas = tk.Canvas(
+            self.frame,
+            width=table_size,
+            height=table_size,
+            bg="white"
+        )
+        self.canvas.pack(padx=10, pady=(10, 6))
 
-        # Controls
-        controls = tk.Frame(self.frame)
-        controls.pack(pady=5)
-
-        self.btn_ab = tk.Button(controls, text="Start Alpha-Beta (Depth 4)", command=lambda: self.start_game("AB"))
-        self.btn_ab.pack(side="left", padx=4)
-        
-        if self._on_reset:
-            tk.Button(controls, text="Reset Grid", command=self._on_reset).pack(side="left", padx=4)
-
-        # Metrics & Scoreboard
-        self._stats_var = tk.StringVar(value="Scores -> A: 0 | B: 0")
-        tk.Label(self.frame, textvariable=self._stats_var, font=('Arial', 12, 'bold')).pack()
-        
-        self._metrics_var = tk.StringVar(value="Ready to begin...")
-        tk.Label(self.frame, textvariable=self._metrics_var, fg="blue").pack()
-
-        self.move_history_a = [] # Store last 4 positions for Agent A
-        self.move_history_b = []
-        self.max_history = 4
+        self.a_score = 0
+        self.b_score = 0
 
         self.draw_grid()
+
+        controls = tk.Frame(self.frame)
+        controls.pack(pady=(6, 4))
+
+        # MINIMAX
+        tk.Button(
+            controls,
+            text="Minimax Step",
+            command=lambda: self.run_minimax(6)
+        ).pack(side="left", padx=4)
+
+        # ALPHA-BETA
+        tk.Button(
+            controls,
+            text="AlphaBeta Step",
+            command=lambda: self.run_alphabeta(6)
+        ).pack(side="left", padx=4)
+
+        # RESET
+        if self._on_reset:
+            tk.Button(
+                controls,
+                text="Reset",
+                command=self._on_reset
+            ).pack(side="left", padx=4)
+        else:
+            tk.Button(
+                controls,
+                text="Reset",
+                command=self.window.destroy
+            ).pack(side="left", padx=4)
+
+        self._metrics_var = tk.StringVar(value="")
+        self._metrics_label = tk.Label(
+            self.frame,
+            textvariable=self._metrics_var,
+            anchor="w",
+            justify="left"
+        )
+        self._metrics_label.pack(fill="x", padx=10, pady=(2, 10))
+
+        # Track A's recent positions to reduce oscillation in depth-limited search
+        self._prev_agent_a = None
+        self._prev2_agent_a = None
+        # Auto-play state.
+        self._auto_playing = False
+        self._auto_algo = None
+        self._auto_depth = None
+
+        tk.Button(controls, text="Auto Play Minimax", command=lambda: self._start_auto_play("minimax", 6)).pack(side="left", padx=4)
+        tk.Button(controls, text="Auto Play AlphaBeta", command=lambda: self._start_auto_play("alphabeta", 6)).pack(side="left", padx=4)
+        tk.Button(controls, text="Stop", command=self._stop_auto_play).pack(side="left", padx=4)
 
     def draw_grid(self):
         self.canvas.delete("all")
+
         for row in range(self.grid_size):
             for col in range(self.grid_size):
-                x1, y1 = col * CELL_SIZE, row * CELL_SIZE
-                x2, y2 = x1 + CELL_SIZE, y1 + CELL_SIZE
-                
-                val = self.grid_array[row][col]
-                color = COLORS.get('empty', 'white')
-                if val == 1: color = COLORS['treasure']
-                elif val == 2: color = COLORS['trap']
-                elif val == 3: color = COLORS['wall']
-                elif val == 4: color = "blue"  # Agent A
-                elif val == 5: color = "red"   # Agent B
+                x1 = col * CELL_SIZE
+                y1 = row * CELL_SIZE
+                x2 = x1 + CELL_SIZE
+                y2 = y1 + CELL_SIZE
 
-                self.canvas.create_rectangle(x1, y1, x2, y2, fill=color, outline='#a6a6a6')
-                
-                # Draw Symbols
-                symbol = SYMBOLS.get(val, '')
-                if val == 4: symbol = "A"
-                if val == 5: symbol = "B"
+                cell_value = self.grid_array[row][col]
+
+                match cell_value:
+                    case 0:
+                        color = COLORS['empty']
+                    case 1:
+                        color = COLORS['treasure']
+                    case 2:
+                        color = COLORS['trap']
+                    case 3:
+                        color = COLORS['wall']
+                    case 4:
+                        color = COLORS['agent_a']      # Agent A
+                    case 5:
+                        color = COLORS['agent_b']      # Agent B
+                    case _:
+                        color = COLORS['empty']
+
+                self.canvas.create_rectangle(
+                    x1, y1, x2, y2,
+                    fill=color,
+                    outline="#a6a6a6",
+                    width=1
+                )
+
+                symbol = SYMBOLS.get(cell_value, '')
                 if symbol:
-                    self.canvas.create_text(x1 + CELL_SIZE/2, y1 + CELL_SIZE/2, text=symbol, font=('Arial', 10, 'bold'))
+                    self.canvas.create_text(
+                        x1 + CELL_SIZE / 2,
+                        y1 + CELL_SIZE / 2,
+                        text=symbol,
+                        font=('Arial', 12, 'bold'),
+                        fill='black'
+                    )
 
-    def start_game(self, algo):
-        if self.is_running: return
-        self.is_running = True
-        self.game_loop()
+    def run_minimax(self, depth):
+        metrics = Metrics()
+        state = GameState(
+            self.grid_array,
+            self.grid.agent_a_coords,
+            self.grid.agent_b_coords,
+            self.grid.treasure_coords.copy(),
+            current_player="A",
+            prev_agent_a=getattr(self, "_prev_agent_a", None),
+            prev2_agent_a=getattr(self, "_prev2_agent_a", None),
+        )
+        start_time = time.perf_counter()
+        score, move = minimax(state, depth, metrics, True)
+        end_time = time.perf_counter()
 
-    def game_loop(self):
-        if not self.grid.treasures or not self.is_running:
-            self.end_game()
-            return
-
-        if self.turn == "A":
-            self.move_agent_a()
-            self.turn = "B"
+        if move:
+            old_a = self.grid.agent_a_coords
+            self._apply_agent_a_move(move)
+            self._prev2_agent_a = self._prev_agent_a
+            self._prev_agent_a = old_a
+            self._random_opponent_move()
         else:
-            self.move_agent_b()
-            self.turn = "A"
+            self._prev_agent_a = self.grid.agent_a_coords
+
+        self._metrics_var.set(
+            f"Minimax (Depth {depth}) — "
+            f"Nodes: {metrics.nodes_expanded}, "
+            f"Time: {(end_time - start_time) * 1000:.2f} ms"
+        )
+        t1 = time.perf_counter()
+
+    def run_alphabeta(self, depth):
+        metrics = Metrics()
+        state = GameState(
+            self.grid_array,
+            self.grid.agent_a_coords,
+            self.grid.agent_b_coords,
+            self.grid.treasure_coords.copy(),
+            current_player="A",
+            prev_agent_a=getattr(self, "_prev_agent_a", None),
+            prev2_agent_a=getattr(self, "_prev2_agent_a", None),
+        )
+        start_time = time.perf_counter()
+        score, move = alphabeta(
+            state,
+            depth,
+            float("-inf"),
+            float("inf"),
+            metrics,
+            True,
+        )
+        end_time = time.perf_counter()
+
+        if move:
+            old_a = self.grid.agent_a_coords
+            self._apply_agent_a_move(move)
+            self._prev2_agent_a = self._prev_agent_a
+            self._prev_agent_a = old_a
+            self._random_opponent_move()
+        else:
+            self._prev2_agent_a = self._prev_agent_a
+            self._prev_agent_a = self.grid.agent_a_coords
+
+        prune_ratio = (
+            metrics.pruned / metrics.nodes_expanded
+            if metrics.nodes_expanded else 0
+        )
+        self._metrics_var.set(
+            f"AlphaBeta (Depth {depth}) — "
+            f"Nodes: {metrics.nodes_expanded}, "
+            f"Pruned: {metrics.pruned}, "
+            f"Ratio: {prune_ratio:.2f}, "
+            f"Time: {(end_time - start_time) * 1000:.2f} ms"
+        )
+
+    def _start_auto_play(self, algo: str, depth: int):
+        self._auto_playing = True
+        self._auto_algo = algo
+        self._auto_depth = depth
+        self._auto_play_next()
+
+    def _stop_auto_play(self):
+        self._auto_playing = False
+
+    def _auto_play_next(self):
+        if not self._auto_playing:
+            return
+        if not self.grid.treasure_coords:
+            self._auto_playing = False
+            self._announce_winner()
+            return
+        state = GameState(
+            self.grid_array,
+            self.grid.agent_a_coords,
+            self.grid.agent_b_coords,
+            self.grid.treasure_coords.copy(),
+            current_player="A",
+            prev_agent_a=getattr(self, "_prev_agent_a", None),
+            prev2_agent_a=getattr(self, "_prev2_agent_a", None),
+        )
+        if not state.get_legal_moves():
+            self._auto_playing = False
+            self._announce_winner()
+            return
+        metrics = Metrics()
+        start_time = time.perf_counter()
+        if self._auto_algo == "minimax":
+            score, move = minimax(state, self._auto_depth, metrics, True)
+        else:
+            score, move = alphabeta(state, self._auto_depth, float("-inf"), float("inf"), metrics, True)
+        end_time = time.perf_counter()
+        if move:
+            old_a = self.grid.agent_a_coords
+            self._apply_agent_a_move(move)
+            self._prev2_agent_a = self._prev_agent_a
+            self._prev_agent_a = old_a
+            self._random_opponent_move()
+        else:
+            self._auto_playing = False
+            return
+        if not self.grid.treasure_coords:
+            self._auto_playing = False
+            self._announce_winner()
+            return 
+            
+        prune_ratio = (metrics.pruned / metrics.nodes_expanded) if metrics.nodes_expanded else 0
+        algo_name = (self._auto_algo or "minimax").capitalize()
+        label = (
+            f"{algo_name} D{self._auto_depth} — "
+            f"Nodes: {metrics.nodes_expanded}, "
+            f"Time: {(end_time - start_time) * 1000:.2f} ms"
+        )
+        if self._auto_algo == "alphabeta":
+            label += f", Pruned: {metrics.pruned}, Ratio: {prune_ratio:.2f}"
+        self._metrics_var.set(label)
+        if self._auto_playing:
+            self.window.after(400, self._auto_play_next)
+
+    def _apply_agent_a_move(self, move):
+        old_row, old_col = self.grid.agent_a_coords
+        new_row, new_col = move
+
+        self.grid_array[old_row][old_col] = 0
+
+        if (new_row, new_col) in self.grid.treasure_coords:
+            self.grid.treasure_coords.remove((new_row, new_col))
+            self.a_score += 1
+
+        self.grid.agent_a_coords = (new_row, new_col)
+        self.grid_array[new_row][new_col] = 4
 
         self.draw_grid()
-        self._stats_var.set(f"Scores -> A: {self.scores['A']} | B: {self.scores['B']}")
-        
-        # Delay for visualization
-        self.window.after(500, self.game_loop)
 
-    def move_agent_a(self):
-        t0 = time.perf_counter()
-        
-        # Pass the history to the alpha_beta function
-        _, next_move = alpha_beta(
-            self.grid_array, 
-            4, 
-            float('-inf'), 
-            float('inf'), 
-            True, 
-            self.grid.agent_a_pos, 
-            self.grid.agent_b_pos, 
-            self.grid.treasures,
-            history=self.move_history_a  # Pass history here
-        )
-        t1 = time.perf_counter()
+    def _random_opponent_move(self):
+        """Greedy opponent for Agent B that moves toward the nearest treasure."""
+        row, col = self.grid.agent_b_coords
+        moves = []
 
-        if next_move:
-            # Update history buffer
-            self.move_history_a.append(self.grid.agent_a_pos)
-            if len(self.move_history_a) > self.max_history:
-                self.move_history_a.pop(0)
-                
-            self.update_position("A", next_move)
-            self._metrics_var.set(f"AI (A) thought for {(t1-t0)*1000:.2f}ms")
+        for d_row, d_col in [(-1, 0), (0, 1), (1, 0), (0, -1)]:
+            nr, nc = row + d_row, col + d_col
+            if 0 <= nr < self.grid_size and 0 <= nc < self.grid_size:
+                if self.grid_array[nr][nc] != 3 and self.grid_array[nr][nc] != 4:
+                    moves.append((nr, nc))
 
-    def move_agent_b(self):
-        """
-        Agent B uses Alpha-Beta as the MINIMIZING player.
-        It tries to reach treasures to 'steal' them from Agent A or 
-        move to states that are bad for Agent A.
-        """
-        t0 = time.perf_counter()
-        
-        # We call alpha_beta with is_maximizing=False 
-        # because the evaluation function is written from Agent A's perspective.
-        _, next_move = alpha_beta(
-            self.grid_array, 
-            4, # Depth
-            float('-inf'), 
-            float('inf'), 
-            False, # is_maximizing = False for Agent B
-            self.grid.agent_a_pos, 
-            self.grid.agent_b_pos, 
-            self.grid.treasures,
-            history=self.move_history_b # Ensure history is tracked for B too
-        )
-        t1 = time.perf_counter()
-
-        if next_move:
-            # Update history for B to prevent circling
-            self.move_history_b.append(self.grid.agent_b_pos)
-            if len(self.move_history_b) > self.max_history:
-                self.move_history_b.pop(0)
-                
-            self.update_position("B", next_move)
-            # Optional: Log performance for your report
-            print(f"Agent B moved to {next_move} (Time: {(t1-t0)*1000:.2f}ms)")
-        else:
-            # Fallback: if no move found (trapped), stay put or try random
-            print("Agent B is trapped!")
-
-    def update_position(self, agent_id, new_move):
-        # 1. Validation: Don't move into walls
-        if self.grid_array[new_move] == 3:
-            print(f"Warning: Agent {agent_id} attempted to move into a wall at {new_move}")
+        if not moves:
             return
 
-        old_pos = self.grid.agent_a_pos if agent_id == "A" else self.grid.agent_b_pos
-        
-        # 2. Update Grid Array (Clear old spot)
-        self.grid_array[old_pos] = 0 
-        
-        # 3. Handle Items
-        cell_type = self.grid_array[new_move]
-        if cell_type == 1: # Treasure collected
-            self.scores[agent_id] += 1
-            if new_move in self.grid.treasures:
-                self.grid.treasures.remove(new_move)
-        elif cell_type == 2: # Trap hit
-            self.scores[agent_id] -= 1
+        # If there are treasures, choose the move that minimizes distance to the closest treasure.
+        if self.grid.treasure_coords:
+            def dist_to_nearest_treasure(pos):
+                r, c = pos
+                return min(abs(r - tr) + abs(c - tc) for tr, tc in self.grid.treasure_coords)
 
-        # 4. Update internal state
-        if agent_id == "A":
-            self.grid.agent_a_pos = new_move
-            self.grid_array[new_move] = 4
+            best_dist = None
+            best_moves = []
+            for m in moves:
+                d = dist_to_nearest_treasure(m)
+                if best_dist is None or d < best_dist:
+                    best_dist = d
+                    best_moves = [m]
+                elif d == best_dist:
+                    best_moves.append(m)
+            move = random.choice(best_moves)
         else:
-            self.grid.agent_b_pos = new_move
-            self.grid_array[new_move] = 5
+            move = random.choice(moves)
 
-    def end_game(self):
-        self.is_running = False
-        winner = "Agent A" if self.scores["A"] > self.scores["B"] else "Agent B"
-        if self.scores["A"] == self.scores["B"]: winner = "It's a Tie!"
-        messagebox.showinfo("Game Over", f"Winner: {winner}\nFinal Score - A: {self.scores['A']} B: {self.scores['B']}")
+        old_row, old_col = self.grid.agent_b_coords
+        self.grid_array[old_row][old_col] = 0
+
+        if move in self.grid.treasure_coords:
+            self.grid.treasure_coords.remove(move)
+            self.b_score += 1
+
+        self.grid.agent_b_coords = move
+        self.grid_array[move[0]][move[1]] = 5
+
+        self.draw_grid()
 
     def destroy(self):
         self.is_running = False
         self.frame.destroy()
 
-'''
-Main app of the program
-    1) Prompts user for grid size (checks for validity as well)
-    2) Generates the grid and displays the map
-'''
-class TreasureHuntApp:
+    def _announce_winner(self):
+        if self.a_score > self.b_score:
+            result = f"Game over. Winner: A (A={self.a_score}, B={self.b_score})"
+        elif self.b_score > self.a_score:
+            result = f"Game over. Winner: B (A={self.a_score}, B={self.b_score})"
+        else:
+            result = f"Game over. Tie (A={self.a_score}, B={self.b_score})"
 
+        # Show in the metrics label:
+        self._metrics_var.set((self._metrics_var.get() or "") + " — " + result)
+
+        # And optionally print to the console:
+        print(result)
+
+class TreasureHuntApp:
     def __init__(self):
         self.root = tk.Tk()
-        self.root.title("Treasure Hunt")
-        
+        self.root.title("Treasure Hunt - Adversarial AI")
         self._map_view: TreasureHuntMap | None = None
         self._create_new_map()
 
     def _create_new_map(self):
-        grid = Grid(20)
-        self._map_view = TreasureHuntMap(grid, root=self.root, on_reset=self.reset)
+        grid = Grid(GRID_SIZE)
+        self._map_view = TreasureHuntMap(
+            grid,
+            root=self.root,
+            on_reset=self.reset
+        )
 
     def reset(self):
-        # Destroy map (if any)
         if self._map_view is not None:
             self._map_view.destroy()
             self._map_view = None
-
         self._create_new_map()
 
     def run(self):

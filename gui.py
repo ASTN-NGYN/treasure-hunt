@@ -1,4 +1,5 @@
 import tkinter as tk
+import time
 from config import CELL_SIZE, COLORS, SYMBOLS
 from grid import Grid
 from search import SearchResult, bfs, dfs, ucs, greedy, a_star
@@ -32,6 +33,10 @@ class TreasureHuntMap:
             false_positive=0.1,
             false_negative=0.2
         )
+
+        # runtime tracking
+        self._bayes_running = False
+        self._bayes_start_time = None
 
         self.draw_grid()
 
@@ -119,7 +124,31 @@ class TreasureHuntMap:
         )
 
     def run_bayes(self):
+
+        # start runtime when first pressed
+        if not self._bayes_running:
+            self._bayes_running = True
+            self._bayes_start_time = time.perf_counter()
+
+        # stop when all treasures collected
+        if len(self.grid.remaining_treasures()) == 0:
+            runtime = time.perf_counter() - self._bayes_start_time
+
+            self._metrics_var.set(
+                f"All treasures collected!\n"
+                f"Moves: {self.bayes_agent.moves} | "
+                f"Scans: {self.bayes_agent.scans} | "
+                f"Treasures: {self.bayes_agent.treasures_found} | "
+                f"Runtime: {runtime:.3f} sec"
+            )
+
+            self._bayes_running = False
+            return
+
+        # run one step
         self.step_bayes()
+
+        # schedule next step
         self.window.after(200, self.run_bayes)
 
     def _show_result(self, algo_name: str, result: SearchResult):

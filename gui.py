@@ -2,6 +2,7 @@ import tkinter as tk
 from config import CELL_SIZE, COLORS, SYMBOLS
 from grid import Grid
 from search import SearchResult, bfs, dfs, ucs, greedy, a_star
+from bayesian_agent import BayesianAgent
 
 # Treasure Map
 class TreasureHuntMap:
@@ -24,6 +25,13 @@ class TreasureHuntMap:
 
         self.canvas.pack(padx=10, pady=(10, 6))
 
+        # Bayesian Agent
+        self.bayes_agent = BayesianAgent(
+            scan_radius=2,
+            false_positive=0.1,
+            false_negative=0.2
+        )
+
         self.draw_grid()
 
         controls = tk.Frame(self.frame)
@@ -34,15 +42,22 @@ class TreasureHuntMap:
         tk.Button(controls, text="Run UCS", command=self.run_ucs).pack(side="left", padx=4)
         tk.Button(controls, text="Run Greedy", command=self.run_greedy).pack(side="left", padx=4)
         tk.Button(controls, text="Run A*", command=self.run_a_star).pack(side="left", padx=4)
+        tk.Button(controls, text="Step Bayesian", command=self.step_bayes).pack(side="left", padx=4)
+        tk.Button(controls, text="Run Bayesian", command=self.run_bayes).pack(side="left", padx=4)
         if self._on_reset:
             tk.Button(controls, text="Reset", command=self._on_reset).pack(side="left", padx=4)
         else:
             tk.Button(controls, text="Reset", command=self.window.destroy).pack(side="left", padx=4)
         self._metrics_var = tk.StringVar(value="")
-        self._metrics_label = tk.Label(self.frame, textvariable=self._metrics_var, anchor="w", justify="left")
+        self._metrics_label = tk.Label(
+            self.frame,
+            textvariable=self._metrics_var,
+            anchor="w",
+            justify="left"
+        )
         self._metrics_label.pack(fill="x", padx=10, pady=(2, 10))
-        
     def draw_grid(self):
+        self.canvas.delete("all")
         for row in range(self.grid_size):
             for col in range(self.grid_size):
                 x1 = col * CELL_SIZE
@@ -54,43 +69,57 @@ class TreasureHuntMap:
                 
                 match cell_value:
                     case 0:
-                        color = COLORS['empty']
+                        color = COLORS["empty"]
                     case 1:
-                        color = COLORS['treasure']
+                        color = COLORS["treasure"]
                     case 2:
-                        color = COLORS['trap']
+                        color = COLORS["trap"]
                     case 3:
-                        color = COLORS['wall']
+                        color = COLORS["wall"]
                     case 4:
-                        color = COLORS['start']
+                        color = COLORS["start"]
                     case _:
-                        color = COLORS['empty']
+                        color = COLORS["empty"]
 
-                self.canvas.create_rectangle(x1, y1, x2, y2, fill=color, outline='#a6a6a6', width=1)
+                self.canvas.create_rectangle(
+                    x1, y1, x2, y2,
+                    fill=color,
+                    outline="#a6a6a6",
+                    width=1
+                )
 
-                symbol = SYMBOLS.get(cell_value, '')
+                symbol = SYMBOLS.get(cell_value, "")
 
-                if symbol != '':
-                    self.canvas.create_text(x1 + CELL_SIZE/2, y1 + CELL_SIZE/2, text=symbol, font=('Arial', 12, 'bold'), fill = 'black')
+                if symbol != "":
+                    self.canvas.create_text(
+                        x1 + CELL_SIZE / 2,
+                        y1 + CELL_SIZE / 2,
+                        text=symbol,
+                        font=("Arial", 12, "bold"),
+                        fill="black"
+                    )
 
-    def _find_start_and_goal(self):
-        start = None
-        goal = None
+    def update_agent_position(self):
+        self.grid_array = self.grid.get_grid()
+        self.draw_grid()
 
-        for row in range(self.grid_size):
-            for col in range(self.grid_size):
-                value = self.grid_array[row][col]
-                if value == 1:
-                    goal = (row, col)
-                if start is None and value == 4:
-                    start = (row, col)
+    def step_bayes(self):
+        self.bayes_agent.step()
+        self.update_agent_position()
 
-        if start is None:
-            start = (0, 0)
-        if goal is None:
-            goal = (self.grid_size - 1, self.grid_size - 1)
+        entropy = 0
+        if self.bayes_agent.entropy_history:
+            entropy = self.bayes_agent.entropy_history[-1]
 
-        return start, goal
+        self._metrics_var.set(
+            f"Moves: {self.bayes_agent.moves} | "
+            f"Scans: {self.bayes_agent.scans} | "
+            f"Entropy: {entropy:.4f}"
+        )
+
+    def run_bayes(self):
+        self.step_bayes()
+        self.window.after(200, self.run_bayes)
 
     def _show_result(self, algo_name: str, result: SearchResult):
         for item_id in self._path_items:
@@ -168,7 +197,11 @@ class TreasureHuntApp:
 
     def _create_new_map(self):
         grid = Grid(20)
-        self._map_view = TreasureHuntMap(grid, root=self.root, on_reset=self.reset)
+        self._map_view = TreasureHuntMap(
+            grid,
+            root=self.root,
+            on_reset=self.reset
+        )
 
     def reset(self):
         # Destroy map (if any)

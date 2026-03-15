@@ -61,6 +61,9 @@ class Grid:
     def generate_random_grid(self):
         for _ in range(100):
             self.grid = np.zeros((self.grid_size, self.grid_size), dtype=int)
+            treasure_coords = []
+            traps_coords = []
+            walls_coords = []
 
             startx, starty = self.agent_coords
             self.grid[startx, starty] = 4
@@ -68,14 +71,21 @@ class Grid:
             for _ in range(2):
                 treasure_x, treasure_y = self.get_random_empty_cell()
                 self.grid[treasure_x, treasure_y] = 1
+                treasure_coords.append((treasure_x, treasure_y))
 
             for _ in range(self.random_traps):
                 trap_x, trap_y = self.get_random_empty_cell()
                 self.grid[trap_x, trap_y] = 2
+                traps_coords.append((trap_x, trap_y))
 
             for _ in range(self.random_walls):
                 wall_x, wall_y = self.get_random_empty_cell()
                 self.grid[wall_x, wall_y] = 3
+                walls_coords.append((wall_x, wall_y))
+
+            self.treasure_coords = treasure_coords
+            self.traps_coords = traps_coords
+            self.walls_coords = walls_coords
             
             start = (startx, starty)
 
@@ -96,6 +106,68 @@ class Grid:
     
     def get_grid(self):
         return self.grid
+
+    def is_wall(self, cell: Coord) -> bool:
+        """Return True when the given cell contains a wall."""
+        return cell in self.walls_coords
+
+    def is_trap(self, cell: Coord) -> bool:
+        """Return True when the given cell contains a trap."""
+        return cell in self.traps_coords
+
+    def is_treasure(self, cell: Coord) -> bool:
+        """Return True when the given cell contains a treasure."""
+        return cell in self.treasure_coords
+
+    def is_blocked(self, cell: Coord) -> bool:
+        """Return True when the given cell cannot contain treasure."""
+        return self.is_wall(cell) or self.is_trap(cell)
+
+    def valid_cells(self) -> list[Coord]:
+        """Return all cells where treasure could exist."""
+        return [
+            (row, col)
+            for row in range(self.grid_size)
+            for col in range(self.grid_size)
+            if not self.is_blocked((row, col))
+        ]
+
+    def remaining_treasures(self) -> list[Coord]:
+        """Return the list of treasure coordinates that still exist."""
+        return list(self.treasure_coords)
+
+    def remove_treasure(self, cell: Coord) -> None:
+        """Remove a collected treasure from both the coordinate list and grid."""
+        if cell not in self.treasure_coords:
+            return
+
+        self.treasure_coords.remove(cell)
+        self.grid[cell[0], cell[1]] = 4 if cell == self.agent_coords else 0
+
+    def get_cells_in_radius(self, center: Coord, radius: int) -> list[Coord]:
+        """Return in-bounds cells within the given Manhattan radius."""
+        cells = []
+        row_center, col_center = center
+
+        for row in range(max(0, row_center - radius), min(self.grid_size, row_center + radius + 1)):
+            for col in range(max(0, col_center - radius), min(self.grid_size, col_center + radius + 1)):
+                if self._manhattan_distance(center, (row, col)) <= radius:
+                    cells.append((row, col))
+
+        return cells
+
+    def reset_random(self, seed: int | None = None) -> None:
+        """Clear and regenerate a random grid, optionally using a seed."""
+        if seed is not None:
+            np.random.seed(seed)
+
+        self.grid = np.zeros((self.grid_size, self.grid_size), dtype=int)
+        self.random_walls = self.calculate_num_walls()
+        self.random_traps = self.calculate_num_traps()
+        self.treasure_coords = []
+        self.traps_coords = []
+        self.walls_coords = []
+        self.generate_random_grid()
 
     def get_shortest_treasure(self, start: Coord) -> Coord | None:
         min_distance = float('inf')

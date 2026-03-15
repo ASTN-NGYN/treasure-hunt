@@ -15,13 +15,61 @@ class Grid:
 
         config.GRID_SIZE = self.grid_size
 
-        self.agent_coords = (10,10)
-        self.treasure_coords = [(3, 17), (17, 3)]
-        self.traps_coords = [(3, 16),(4, 17), (16, 3), (17, 4)]
-        self.walls_coords = [(1,8), (2,8), (3,9), (4,9), (5,15), 
-                            (6,12), (7,7), (8,13), (10,6), (11,10), 
-                            (13,3), (14,14), (15,6), (17,18), 
-                            (18,9), (5,4), (9,4), (12,16)]
+        # self.agent_coords = (10,10)
+        # self.treasure_coords = [(3, 17), (17, 3)]
+        # self.traps_coords = [(3, 16),(4, 17), (16, 3), (17, 4)]
+        # self.walls_coords = [(1,8), (2,8), (3,9), (4,9), (5,15), 
+        #                     (6,12), (7,7), (8,13), (10,6), (11,10), 
+        #                     (13,3), (14,14), (15,6), (17,18), 
+        #                     (18,9), (5,4), (9,4), (12,16)]
+
+
+        # ======================================================
+        # PROMPT 1: Medium Noise Treasure Hunt
+        # ======================================================
+        self.agent_coords = (2, 2)
+
+        self.treasure_coords = [
+            (6, 8)
+        ]
+
+        self.traps_coords = [
+            (5, 7),
+            (14, 13)
+        ]
+
+        self.walls_coords = [
+            (4,5),(4,6),(4,7),
+            (9,10),(10,10),(11,10),
+            (12,4),(13,4),(14,4),
+            (16,11)
+        ]
+
+
+        # ======================================================
+        # PROMPT 2: High Noise Treasure Hunt
+        # ======================================================
+
+        # self.agent_coords = (18, 3)
+        #
+        # self.treasure_coords = [
+        #     (5,16),
+        #     (11,11),
+        #     (17,14)
+        # ]
+        #
+        # self.traps_coords = [
+        #     (6,15),
+        #     (10,12),
+        #     (16,13)
+        # ]
+        #
+        # self.walls_coords = [
+        #     (3,8),(4,8),(5,8),
+        #     (8,4),(8,5),(8,6),
+        #     (10,15),(11,15),(12,15),
+        #     (13,9),(14,9),(15,9)
+        # ]
         
         self.random_walls = self.calculate_num_walls()   # for when you want to generate the walls randomly
         self.random_traps = self.calculate_num_traps()   # for when you want to generate the traps randomly

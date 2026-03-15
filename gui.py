@@ -27,6 +27,7 @@ class TreasureHuntMap:
 
         # Bayesian Agent
         self.bayes_agent = BayesianAgent(
+            self.grid,
             scan_radius=2,
             false_positive=0.1,
             false_negative=0.2

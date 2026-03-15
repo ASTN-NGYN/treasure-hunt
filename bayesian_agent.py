@@ -1,6 +1,6 @@
 from __future__ import annotations
-
 from typing import Dict, List, Tuple
+import numpy as np
 
 from bayes import BayesianBelief, SensorModel
 from search import a_star
@@ -9,7 +9,7 @@ Coord = Tuple[int, int]
 
 
 class BayesianAgent:
-    """Agent that combines Bayesian belief updates with A* movement."""
+    """Optimized Bayesian treasure hunting agent."""
 
     def __init__(
         self,
@@ -28,24 +28,58 @@ class BayesianAgent:
         self.treasures_found = 0
         self.entropy_history: List[float] = []
 
+        self.unreachable = set()
+
+    # SCAN
     def scan(self) -> bool:
-        """Perform a scan at the agent position and update belief."""
+        """Perform a sensor scan and update belief."""
         position = self.grid.agent_coords
         observation = self.belief.simulate_observation(position)
         self.belief.update(position, observation)
-        self.entropy_history.append(self.belief.compute_entropy())
+        entropy = self.belief.compute_entropy()
+        self.entropy_history.append(entropy)
         self.scans += 1
         return observation
 
-    def choose_target(self) -> Coord:
-        """Select the next exploration target from maximum belief."""
-        return self.belief.argmax_cell()
+    # TARGET SELECTION
+    def choose_targets(self, k: int = 10) -> List[Coord]:
+        """
+        Return top-k highest probability cells.
+        Avoid unreachable cells.
+        """
 
-    def move_to_target(self, target: Coord) -> bool:
-        """Move the agent one step toward target using existing A*."""
+        belief = self.belief.belief
+
+        flat = belief.flatten()
+        indices = flat.argsort()[::-1]
+
+        targets = []
+        size = self.grid.grid_size
+
+        for idx in indices:
+            r = idx // size
+            c = idx % size
+            cell = (r, c)
+
+            if cell in self.unreachable:
+                continue
+
+            if self.grid.is_blocked(cell):
+                continue
+
+            targets.append(cell)
+            if len(targets) >= k:
+                break
+
+        return targets
+
+    # MOVE
+    def move_to_target(self) -> bool:
+        """Move toward best reachable belief target."""
+        targets = self.choose_targets()
         start = self.grid.agent_coords
 
-        for _ in range(len(self.grid.valid_cells())):
+        for target in targets:
             result = a_star(self.grid.get_grid(), start, target)
 
             if len(result.path) >= 2:
@@ -63,18 +97,15 @@ class BayesianAgent:
                 self.moves += 1
                 return True
 
-            # Suppress unreachable/current target and try the next best belief cell.
-            self.belief.belief[target[0], target[1]] = 0.0
-            self.belief.normalize()
-            target = self.choose_target()
+            # mark unreachable
+            self.unreachable.add(target)
 
         return False
 
+    # STEP
     def step(self) -> Dict[str, object]:
-        """Run one Bayesian scan-and-move iteration and collect treasure if reached."""
         observation = self.scan()
-        target = self.choose_target()
-        moved = self.move_to_target(target)
+        moved = self.move_to_target()
 
         found_treasure = False
         agent_pos = self.grid.agent_coords
@@ -82,17 +113,19 @@ class BayesianAgent:
         if self.grid.is_treasure(agent_pos):
             self.grid.remove_treasure(agent_pos)
             self.treasures_found += 1
+            # reset belief after collecting treasure
             self.belief.initialize_uniform_prior()
+            self.unreachable.clear()
             found_treasure = True
 
         return {
             "observation": observation,
-            "target": target,
             "moved": moved,
             "found_treasure": found_treasure,
             "position": self.grid.agent_coords,
         }
 
+    # RUN LOOP
     def run_until_treasure(self, max_steps: int | None = None) -> int:
         """Repeat step() until one treasure is collected."""
         start_found = self.treasures_found

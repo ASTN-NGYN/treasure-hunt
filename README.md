@@ -38,7 +38,60 @@ How to set up and run:
    - provide a Reset button to regenerate a new grid configuration
 
 
-Experimentation & Results:
+Bayesian Treasure Hunt Agent
+
+The agent:
+   - maintains a belief distribution over all grid cells
+   - performs scans using a noisy sensor model
+   - updates the belief distribution using Bayesian inference
+   - selects the next target cell based on the highest belief value
+   - moves using A* path planning
+
+During exploration the agent records:
+   - number of moves
+   - number of scans
+   - treasures collected
+   - entropy of the belief distribution
+
+Entropy is used as a measure of uncertainty in the belief distribution.
+
+
+Running Experiments
+
+To run automated experiments and generate performance metrics:
+
+```
+python test.py
+```
+
+The experiment runner executes multiple episodes using different random seeds and records performance statistics.
+
+Metrics recorded per episode:
+   - number of moves
+   - number of scans
+   - number of treasures found
+   - final entropy
+   - success status
+
+
+Example Experiment Results
+
+```
+Seed    Moves     Scans     Treasures   Final Entropy   Success
+------------------------------------------------------------------
+1       183       183       2           5.966147        yes
+2       198       198       2           5.973810        yes
+3       120       120       2           5.968708        yes
+
+Aggregated
+avg_moves: 167.000
+avg_scans: 167.000
+avg_entropy: 5.969555
+success_rate: 1.000
+```
+
+Experimentation & Results
+
    - The better searching algorithm depends on the placement of the target grid, wall and trap placements, as well as the starting point. We noticed that if the target was beneath the start (vertically further), then DFS would perform better in fewer steps. Whereas, if the target was place somewhere horizontal, then BFS and UCS would excel.
    - The reason being, the way we implemented DFS it would search down as far as possible and then backtrack.
    - For BFS, we visit neighboring/adjacent cells and then explore their neighboring cells. Essentially expanding in all directions from the start point.
